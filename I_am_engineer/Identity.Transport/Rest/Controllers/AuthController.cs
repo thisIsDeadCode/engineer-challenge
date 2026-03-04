@@ -1,4 +1,4 @@
-namespace Identity.Transport.Rest.Controllers;
+namespace I_am_engineer.Identity.Transport.Rest.Controllers;
 
 public class AuthController
 {
