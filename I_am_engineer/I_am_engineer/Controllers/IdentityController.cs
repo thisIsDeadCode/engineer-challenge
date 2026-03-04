@@ -1,6 +1,6 @@
-using I_am_engineer.Identity.Application.Identity.Commands;
-using I_am_engineer.Identity.Application.Identity.Queries;
-using I_am_engineer.Identity.Application.Identity.Requests;
+using I_am_engineer.Identity.Application.Commands;
+using I_am_engineer.Identity.Application.Queries;
+using I_am_engineer.Identity.Application.Requests;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

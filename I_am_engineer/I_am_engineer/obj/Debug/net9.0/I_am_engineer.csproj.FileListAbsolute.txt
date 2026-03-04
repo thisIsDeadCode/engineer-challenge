@@ -1,0 +1,9 @@
+C:\Users\PCZONE.GE\source\repos\engineer-challenge\I_am_engineer\I_am_engineer\obj\Debug\net9.0\I_am_engineer.csproj.AssemblyReference.cache
+C:\Users\PCZONE.GE\source\repos\engineer-challenge\I_am_engineer\I_am_engineer\obj\Debug\net9.0\rpswa.dswa.cache.json
+C:\Users\PCZONE.GE\source\repos\engineer-challenge\I_am_engineer\I_am_engineer\obj\Debug\net9.0\I_am_engineer.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\PCZONE.GE\source\repos\engineer-challenge\I_am_engineer\I_am_engineer\obj\Debug\net9.0\I_am_engineer.AssemblyInfoInputs.cache
+C:\Users\PCZONE.GE\source\repos\engineer-challenge\I_am_engineer\I_am_engineer\obj\Debug\net9.0\I_am_engineer.AssemblyInfo.cs
+C:\Users\PCZONE.GE\source\repos\engineer-challenge\I_am_engineer\I_am_engineer\obj\Debug\net9.0\I_am_engineer.csproj.CoreCompileInputs.cache
+C:\Users\PCZONE.GE\source\repos\engineer-challenge\I_am_engineer\I_am_engineer\obj\Debug\net9.0\I_am_engineer.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\PCZONE.GE\source\repos\engineer-challenge\I_am_engineer\I_am_engineer\obj\Debug\net9.0\I_am_engineer.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\PCZONE.GE\source\repos\engineer-challenge\I_am_engineer\I_am_engineer\obj\Debug\net9.0\I_am_engineer.sourcelink.json
