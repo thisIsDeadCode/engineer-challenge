@@ -1,4 +1,4 @@
-namespace Identity.Infrastructure.Persistence;
+namespace I_am_engineer.Identity.Infrastructure.Persistence;
 
 public class IdentityDbContext
 {

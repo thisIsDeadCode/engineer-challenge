@@ -1,4 +1,4 @@
-namespace Identity.Domain.DomainServices;
+namespace I_am_engineer.Identity.Domain.DomainServices;
 
 public class LockoutPolicy
 {
