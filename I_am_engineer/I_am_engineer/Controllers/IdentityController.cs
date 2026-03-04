@@ -17,7 +17,14 @@ public class IdentityController(ISender sender) : ControllerBase
         var command = new CreateUserCommand(request.Email, request.Password);
         var response = await sender.Send(command, cancellationToken);
 
-        return Ok(ApiResponse<AuthTokensResponse>.Success(response, true));
+        if (response.IsSuccess)
+        {
+            return Ok(ApiResponse<AuthTokensResponse>.Success(response));
+        }
+        else 
+        { 
+            return Ok(ApiResponse.Error(response.Message!));
+        }
     }
 
     [HttpPost("login")]
@@ -26,7 +33,14 @@ public class IdentityController(ISender sender) : ControllerBase
         var command = new LoginCommand(request.Email, request.Password, request.DeviceId);
         var response = await sender.Send(command, cancellationToken);
 
-        return Ok(ApiResponse<AuthTokensResponse>.Success(response, true));
+        if (response.IsSuccess)
+        {
+            return Ok(ApiResponse<AuthTokensResponse>.Success(response));
+        }
+        else
+        {
+            return Ok(ApiResponse.Error(response.Message!));
+        }
     }
 
     [HttpPost("sessions/refresh")]
@@ -35,34 +49,62 @@ public class IdentityController(ISender sender) : ControllerBase
         var command = new RefreshSessionCommand(request.RefreshToken);
         var response = await sender.Send(command, cancellationToken);
 
-        return Ok(ApiResponse<AuthTokensResponse>.Success(response, true));
+        if (response.IsSuccess)
+        {
+            return Ok(ApiResponse<AuthTokensResponse>.Success(response));
+        }
+        else
+        {
+            return Ok(ApiResponse.Error(response.Message!));
+        }
     }
 
     [HttpDelete("Logout/{sessionId:guid}")]
     public async Task<IActionResult> Logout([FromRoute] Guid sessionId, CancellationToken cancellationToken)
     {
         var command = new LogoutCommand(sessionId);
-        await sender.Send(command, cancellationToken);
+        var response = await sender.Send(command, cancellationToken);
 
-        return Ok(ApiResponse<object>.Success(null, true));
+        if (response.IsSuccess)
+        {
+            return Ok(ApiResponse.Success());
+        }
+        else
+        {
+            return Ok(ApiResponse.Error(response.Message!));
+        }
     }
 
     [HttpPost("password-resets")]
     public async Task<IActionResult> RequestPasswordReset([FromBody] PasswordResetRequest request, CancellationToken cancellationToken)
     {
         var command = new RequestPasswordResetCommand(request.Email);
-        await sender.Send(command, cancellationToken);
+        var response = await sender.Send(command, cancellationToken);
 
-        return Accepted(ApiResponse<object>.Success(null, true));
+        if (response.IsSuccess)
+        {
+            return Ok(ApiResponse.Success());
+        }
+        else
+        {
+            return Ok(ApiResponse.Error(response.Message!));
+        }
     }
 
     [HttpPost("password-resets/confirm")]
     public async Task<IActionResult> ConfirmPasswordReset([FromBody] ConfirmPasswordResetRequest request, CancellationToken cancellationToken)
     {
         var command = new ConfirmPasswordResetCommand(request.ResetToken, request.NewPassword);
-        await sender.Send(command, cancellationToken);
+        var response = await sender.Send(command, cancellationToken);
 
-        return Ok(ApiResponse<object>.Success(null, true));
+        if (response.IsSuccess)
+        {
+            return Ok(ApiResponse.Success());
+        }
+        else
+        {
+            return Ok(ApiResponse.Error(response.Message!));
+        }
     }
 
     [HttpGet("sessions/me")]
@@ -71,6 +113,13 @@ public class IdentityController(ISender sender) : ControllerBase
         var query = new GetMyProfileQuery();
         var response = await sender.Send(query, cancellationToken);
 
-        return Ok(ApiResponse<MyProfileResponse>.Success(response, true));
+        if (response.IsSuccess)
+        {
+            return Ok(ApiResponse<MyProfileResponse>.Success(response));
+        }
+        else
+        {
+            return Ok(ApiResponse.Error(response.Message!));
+        }
     }
 }

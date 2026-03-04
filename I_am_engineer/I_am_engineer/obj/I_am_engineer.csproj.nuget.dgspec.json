@@ -44,13 +44,17 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "dependencies": {
-            "MediatR.Extensions.Microsoft.DependencyInjection": {
+            "MediatR": {
               "target": "Package",
-              "version": "[11.1.0, )"
+              "version": "[14.1.0, )"
             },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[9.0.12, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[10.1.4, )"
             }
           },
           "imports": [
