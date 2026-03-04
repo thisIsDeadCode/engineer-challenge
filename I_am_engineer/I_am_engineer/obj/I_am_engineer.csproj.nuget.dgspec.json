@@ -1,0 +1,76 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\PCZONE.GE\\source\\repos\\engineer-challenge\\I_am_engineer\\I_am_engineer\\I_am_engineer.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\PCZONE.GE\\source\\repos\\engineer-challenge\\I_am_engineer\\I_am_engineer\\I_am_engineer.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\PCZONE.GE\\source\\repos\\engineer-challenge\\I_am_engineer\\I_am_engineer\\I_am_engineer.csproj",
+        "projectName": "I_am_engineer",
+        "projectPath": "C:\\Users\\PCZONE.GE\\source\\repos\\engineer-challenge\\I_am_engineer\\I_am_engineer\\I_am_engineer.csproj",
+        "packagesPath": "C:\\Users\\PCZONE.GE\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\PCZONE.GE\\source\\repos\\engineer-challenge\\I_am_engineer\\I_am_engineer\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\PCZONE.GE\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "dependencies": {
+            "Microsoft.AspNetCore.OpenApi": {
+              "target": "Package",
+              "version": "[9.0.12, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

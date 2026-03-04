@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "UTtHULJvRbw=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\PCZONE.GE\\source\\repos\\engineer-challenge\\I_am_engineer\\I_am_engineer\\I_am_engineer.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\PCZONE.GE\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.12\\microsoft.aspnetcore.openapi.9.0.12.nupkg.sha512",
+    "C:\\Users\\PCZONE.GE\\.nuget\\packages\\microsoft.openapi\\1.6.17\\microsoft.openapi.1.6.17.nupkg.sha512"
+  ],
+  "logs": []
+}
