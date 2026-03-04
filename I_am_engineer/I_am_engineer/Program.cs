@@ -1,9 +1,14 @@
+using I_am_engineer.Identity.Application.DependencyInjection;
+using I_am_engineer.Identity.Infrastructure.DependencyInjection;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+builder.Services
+    .AddIdentityApplication()
+    .AddIdentityInfrastructure();
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 

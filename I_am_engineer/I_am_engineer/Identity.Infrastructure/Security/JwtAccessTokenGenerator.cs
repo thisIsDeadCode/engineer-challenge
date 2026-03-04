@@ -1,5 +1,7 @@
+using I_am_engineer.Identity.Application.Abstractions;
+
 namespace I_am_engineer.Identity.Infrastructure.Security;
 
-public class JwtAccessTokenGenerator
+public sealed class JwtAccessTokenGenerator : ITokenGenerator
 {
 }
