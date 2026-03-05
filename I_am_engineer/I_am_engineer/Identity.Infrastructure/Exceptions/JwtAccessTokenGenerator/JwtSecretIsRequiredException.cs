@@ -1,4 +1,4 @@
-namespace I_am_engineer.Identity.Infrastructure.Exceptions;
+namespace I_am_engineer.Identity.Infrastructure.Exceptions.JwtAccessTokenGenerator;
 
 public sealed class JwtSecretIsRequiredException : Exception
 {

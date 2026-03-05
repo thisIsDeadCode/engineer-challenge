@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using I_am_engineer.Identity.Application.Abstractions;
-using I_am_engineer.Identity.Infrastructure.Exceptions;
+using I_am_engineer.Identity.Infrastructure.Exceptions.JwtAccessTokenGenerator;
 using Microsoft.Extensions.Configuration;
 
 namespace I_am_engineer.Identity.Infrastructure.Security;
