@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using I_am_engineer.Identity.Application.Abstractions;
 using I_am_engineer.Identity.Application.DTOs.RateLimiter;
-using I_am_engineer.Identity.Infrastructure.Exceptions;
+using I_am_engineer.Identity.Infrastructure.Exceptions.InMemoryRateLimiter;
 
 namespace I_am_engineer.Identity.Infrastructure.RateLimiting;
 
