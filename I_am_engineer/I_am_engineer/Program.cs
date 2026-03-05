@@ -9,8 +9,9 @@ builder.Services
     .AddIdentityApplication()
     .AddIdentityInfrastructure();
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
