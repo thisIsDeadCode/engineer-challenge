@@ -1,3 +1,5 @@
+using I_am_engineer.Identity.Application.DTOs.UserRepository;
+
 namespace I_am_engineer.Identity.Application.Abstractions;
 
 public interface IUserRepository

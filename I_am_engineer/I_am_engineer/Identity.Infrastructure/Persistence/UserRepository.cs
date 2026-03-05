@@ -1,6 +1,7 @@
 using System.Data;
 using Dapper;
 using I_am_engineer.Identity.Application.Abstractions;
+using I_am_engineer.Identity.Application.DTOs.UserRepository;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 
