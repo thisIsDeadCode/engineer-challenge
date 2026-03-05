@@ -1,4 +1,4 @@
-namespace I_am_engineer.Identity.Infrastructure.Exceptions;
+namespace I_am_engineer.Identity.Infrastructure.Exceptions.InMemoryRateLimiter;
 
 public sealed class RateLimiterInvalidConfigurationException : Exception
 {
