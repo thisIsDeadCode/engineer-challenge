@@ -33,7 +33,7 @@ CREATE TABLE dbo.UserSessions
     RefreshToken NVARCHAR(512) NOT NULL UNIQUE,
     RefreshTokenExpiresAt DATETIMEOFFSET NOT NULL,
     DeviceId NVARCHAR(128) NULL,
-    IsRevoked BIT NOT NULL DEFAULT 0,
+    IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
     CONSTRAINT FK_UserSessions_Users FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId)
 );
@@ -111,7 +111,7 @@ BEGIN
         @UserId = s.UserId
     FROM dbo.UserSessions s
     WHERE s.RefreshToken = @RefreshToken
-      AND s.IsRevoked = 0
+      AND s.IsActive = 1
       AND s.RefreshTokenExpiresAt > SYSUTCDATETIME();
 
     IF @SessionId IS NULL
@@ -132,16 +132,16 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.usp_Identity_RevokeSession
+CREATE OR ALTER PROCEDURE dbo.usp_Identity_DeactivateSession
     @SessionId UNIQUEIDENTIFIER
 AS
 BEGIN
     SET NOCOUNT ON;
 
     UPDATE dbo.UserSessions
-    SET IsRevoked = 1
+    SET IsActive = 0
     WHERE SessionId = @SessionId
-      AND IsRevoked = 0;
+      AND IsActive = 1;
 END;
 GO
 

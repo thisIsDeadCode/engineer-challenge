@@ -10,7 +10,7 @@ public interface IUserRepository
 
     Task<SessionTokensDto?> RefreshSessionAsync(string refreshToken, string nextRefreshToken, DateTimeOffset nextRefreshTokenExpiresAt, CancellationToken cancellationToken);
 
-    Task<bool> RevokeSessionAsync(Guid sessionId, CancellationToken cancellationToken);
+    Task<bool> DeactivateSessionAsync(Guid sessionId, CancellationToken cancellationToken);
 
     Task<bool> CreatePasswordResetAsync(string email, string resetToken, DateTimeOffset expiresAt, CancellationToken cancellationToken);
 

@@ -67,11 +67,11 @@ public sealed class UserRepository(IConfiguration configuration) : IUserReposito
             cancellationToken: cancellationToken));
     }
 
-    public async Task<bool> RevokeSessionAsync(Guid sessionId, CancellationToken cancellationToken)
+    public async Task<bool> DeactivateSessionAsync(Guid sessionId, CancellationToken cancellationToken)
     {
         await using var connection = new SqlConnection(_connectionString);
         var affected = await connection.ExecuteAsync(new CommandDefinition(
-            commandText: "dbo.usp_Identity_RevokeSession",
+            commandText: "dbo.usp_Identity_DeactivateSession",
             parameters: new { SessionId = sessionId },
             commandType: CommandType.StoredProcedure,
             cancellationToken: cancellationToken));
