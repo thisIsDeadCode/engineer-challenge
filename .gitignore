@@ -446,3 +446,5 @@ FodyWeavers.xsd
 /I_am_engineer/I_am_engineer/obj/project.assets.json
 /I_am_engineer/I_am_engineer/obj/project.nuget.cache
 /I_am_engineer/I_am_engineer/obj/Debug/net9.0/rpswa.dswa.cache.json
+/I_am_engineer/I_am_engineer/obj/Debug/net9.0/I_am_engineer.MvcApplicationPartsAssemblyInfo.cache
+/I_am_engineer/I_am_engineer/obj/Debug/net9.0/I_am_engineer.MvcApplicationPartsAssemblyInfo.cs
