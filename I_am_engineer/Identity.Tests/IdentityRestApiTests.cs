@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Identity.Tests.Models;
 
 namespace Identity.Tests;
 
@@ -126,33 +127,4 @@ public sealed class IdentityRestApiTests : IClassFixture<TestApplicationFactory>
         Assert.Equal("test@example.com", payload.Data?.Email);
     }
 
-    private sealed class BaseRestResponse
-    {
-        public bool IsSuccess { get; set; }
-        public string? Message { get; set; }
-    }
-
-    private sealed class AuthTokensRestResponse : BaseRestResponse
-    {
-        public AuthTokensDataResponse? Data { get; set; }
-    }
-
-    private sealed class AuthTokensDataResponse
-    {
-        public string AccessToken { get; set; } = string.Empty;
-        public string RefreshToken { get; set; } = string.Empty;
-        public DateTimeOffset ExpiresAt { get; set; }
-    }
-
-    private sealed class MyProfileRestResponse : BaseRestResponse
-    {
-        public MyProfileDataResponse? Data { get; set; }
-    }
-
-    private sealed class MyProfileDataResponse
-    {
-        public Guid UserId { get; set; }
-        public string Email { get; set; } = string.Empty;
-        public string DisplayName { get; set; } = string.Empty;
-    }
 }
