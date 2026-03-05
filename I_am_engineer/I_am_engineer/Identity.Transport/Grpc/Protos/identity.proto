@@ -5,13 +5,13 @@ option csharp_namespace = "I_am_engineer.Identity.Transport.Grpc";
 package identity;
 
 service IdentityService {
-  rpc CreateUser (CreateUserRequest) returns (AuthTokensResponse);
-  rpc Login (LoginRequest) returns (AuthTokensResponse);
-  rpc RefreshSession (RefreshSessionRequest) returns (AuthTokensResponse);
-  rpc Logout (LogoutRequest) returns (BaseResponse);
-  rpc RequestPasswordReset (PasswordResetRequest) returns (BaseResponse);
-  rpc ConfirmPasswordReset (ConfirmPasswordResetRequest) returns (BaseResponse);
-  rpc GetMyProfile (GetMyProfileRequest) returns (MyProfileResponse);
+  rpc CreateUser (CreateUserRequest) returns (ApiResponseAuthTokens);
+  rpc Login (LoginRequest) returns (ApiResponseAuthTokens);
+  rpc RefreshSession (RefreshSessionRequest) returns (ApiResponseAuthTokens);
+  rpc Logout (LogoutRequest) returns (ApiResponse);
+  rpc RequestPasswordReset (PasswordResetRequest) returns (ApiResponse);
+  rpc ConfirmPasswordReset (ConfirmPasswordResetRequest) returns (ApiResponse);
+  rpc GetMyProfile (GetMyProfileRequest) returns (ApiResponseMyProfile);
 }
 
 message CreateUserRequest {
@@ -45,23 +45,31 @@ message ConfirmPasswordResetRequest {
 message GetMyProfileRequest {
 }
 
-message BaseResponse {
+message ApiResponse {
   bool is_success = 1;
   string message = 2;
 }
 
-message AuthTokensResponse {
-  bool is_success = 1;
-  string message = 2;
-  string access_token = 3;
-  string refresh_token = 4;
-  string expires_at = 5;
+message ApiResponseAuthTokens {
+  AuthTokensData data = 1;
+  bool is_success = 2;
+  string message = 3;
 }
 
-message MyProfileResponse {
-  bool is_success = 1;
-  string message = 2;
-  string user_id = 3;
-  string email = 4;
-  string display_name = 5;
+message ApiResponseMyProfile {
+  MyProfileData data = 1;
+  bool is_success = 2;
+  string message = 3;
+}
+
+message AuthTokensData {
+  string access_token = 1;
+  string refresh_token = 2;
+  string expires_at = 3;
+}
+
+message MyProfileData {
+  string user_id = 1;
+  string email = 2;
+  string display_name = 3;
 }
