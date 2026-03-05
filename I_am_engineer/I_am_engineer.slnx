@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="Identity.Tests/Identity.Tests.csproj" Id="c578fed3-3eeb-4dac-a5b8-8e633caf9781" />
   <Project Path="I_am_engineer/I_am_engineer.csproj" />
 </Solution>
