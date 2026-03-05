@@ -5,7 +5,7 @@ using I_am_engineer.Identity.Application.Responses;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
-namespace I_am_engineer.Controllers;
+namespace I_am_engineer.Identity.Transport.Rest.Controllers;
 
 [ApiController]
 [Route("api/v1/identity")]
