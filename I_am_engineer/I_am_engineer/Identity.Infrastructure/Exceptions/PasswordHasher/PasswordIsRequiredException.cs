@@ -1,4 +1,4 @@
-namespace I_am_engineer.Identity.Domain.Exceptions.PasswordHasher;
+namespace I_am_engineer.Identity.Infrastructure.Exceptions.PasswordHasher;
 
 public sealed class PasswordIsRequiredException : Exception
 {

@@ -1,5 +1,5 @@
 using I_am_engineer.Identity.Application.Abstractions;
-using I_am_engineer.Identity.Domain.Exceptions.PasswordHasher;
+using I_am_engineer.Identity.Infrastructure.Exceptions.PasswordHasher;
 using Microsoft.AspNetCore.Identity;
 
 namespace I_am_engineer.Identity.Infrastructure.Security;
