@@ -1,3 +1,67 @@
 syntax = "proto3";
 
+option csharp_namespace = "I_am_engineer.Identity.Transport.Grpc";
+
 package identity;
+
+service IdentityService {
+  rpc CreateUser (CreateUserRequest) returns (AuthTokensResponse);
+  rpc Login (LoginRequest) returns (AuthTokensResponse);
+  rpc RefreshSession (RefreshSessionRequest) returns (AuthTokensResponse);
+  rpc Logout (LogoutRequest) returns (BaseResponse);
+  rpc RequestPasswordReset (PasswordResetRequest) returns (BaseResponse);
+  rpc ConfirmPasswordReset (ConfirmPasswordResetRequest) returns (BaseResponse);
+  rpc GetMyProfile (GetMyProfileRequest) returns (MyProfileResponse);
+}
+
+message CreateUserRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+  string device_id = 3;
+}
+
+message RefreshSessionRequest {
+  string refresh_token = 1;
+}
+
+message LogoutRequest {
+  string session_id = 1;
+}
+
+message PasswordResetRequest {
+  string email = 1;
+}
+
+message ConfirmPasswordResetRequest {
+  string reset_token = 1;
+  string new_password = 2;
+}
+
+message GetMyProfileRequest {
+}
+
+message BaseResponse {
+  bool is_success = 1;
+  string message = 2;
+}
+
+message AuthTokensResponse {
+  bool is_success = 1;
+  string message = 2;
+  string access_token = 3;
+  string refresh_token = 4;
+  string expires_at = 5;
+}
+
+message MyProfileResponse {
+  bool is_success = 1;
+  string message = 2;
+  string user_id = 3;
+  string email = 4;
+  string display_name = 5;
+}

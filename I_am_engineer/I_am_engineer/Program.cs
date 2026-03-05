@@ -1,10 +1,12 @@
 using I_am_engineer.Identity.Application.DependencyInjection;
 using I_am_engineer.Identity.Infrastructure.DependencyInjection;
+using I_am_engineer.Identity.Transport.Grpc.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddGrpc();
 builder.Services
     .AddIdentityApplication()
     .AddIdentityInfrastructure();
@@ -29,6 +31,7 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
+app.MapGrpcService<IdentityGrpcService>();
 app.MapControllers();
 
 app.Run();
