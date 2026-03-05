@@ -1,5 +1,5 @@
 using Grpc.Net.Client;
-using I_am_engineer.Identity.Transport.Grpc;
+using Identity.Tests.GrpcClient;
 
 namespace Identity.Tests;
 
@@ -15,6 +15,13 @@ public sealed class IdentityGrpcApiTests : IClassFixture<TestApplicationFactory>
     public IdentityGrpcApiTests(TestApplicationFactory factory)
     {
         _factory = factory;
+    }
+
+
+    [Fact]
+    public void GrpcClient_IsGeneratedInTestProject()
+    {
+        Assert.Equal("Identity.Tests", typeof(IdentityService.IdentityServiceClient).Assembly.GetName().Name);
     }
 
     [Fact]

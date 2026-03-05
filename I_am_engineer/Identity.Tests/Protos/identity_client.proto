@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+option csharp_namespace = "Identity.Tests.GrpcClient";
+
+package identity;
+
+service IdentityService {
+  rpc CreateUser (CreateUserRequest) returns (ApiResponseAuthTokens);
+  rpc Login (LoginRequest) returns (ApiResponseAuthTokens);
+  rpc RefreshSession (RefreshSessionRequest) returns (ApiResponseAuthTokens);
+  rpc Logout (LogoutRequest) returns (ApiResponse);
+  rpc RequestPasswordReset (PasswordResetRequest) returns (ApiResponse);
+  rpc ConfirmPasswordReset (ConfirmPasswordResetRequest) returns (ApiResponse);
+  rpc GetMyProfile (GetMyProfileRequest) returns (ApiResponseMyProfile);
+}
+
+message CreateUserRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+  string device_id = 3;
+}
+
+message RefreshSessionRequest {
+  string refresh_token = 1;
+}
+
+message LogoutRequest {
+  string session_id = 1;
+}
+
+message PasswordResetRequest {
+  string email = 1;
+}
+
+message ConfirmPasswordResetRequest {
+  string reset_token = 1;
+  string new_password = 2;
+}
+
+message GetMyProfileRequest {
+}
+
+message ApiResponse {
+  bool is_success = 1;
+  string message = 2;
+}
+
+message ApiResponseAuthTokens {
+  AuthTokensData data = 1;
+  bool is_success = 2;
+  string message = 3;
+}
+
+message ApiResponseMyProfile {
+  MyProfileData data = 1;
+  bool is_success = 2;
+  string message = 3;
+}
+
+message AuthTokensData {
+  string access_token = 1;
+  string refresh_token = 2;
+  string expires_at = 3;
+}
+
+message MyProfileData {
+  string user_id = 1;
+  string email = 2;
+  string display_name = 3;
+}
