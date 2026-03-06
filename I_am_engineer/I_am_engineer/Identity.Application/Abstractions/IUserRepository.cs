@@ -8,6 +8,14 @@ public interface IUserRepository
 
     Task<UserCredentialsDto?> GetUserCredentialsByEmailAsync(string email, CancellationToken cancellationToken);
 
+    Task<bool> UpdateUserLockoutAsync(Guid userId, int currentFailedAttempts, DateTimeOffset? lockedUntil, CancellationToken cancellationToken);
+
+    Task<UserOneTimePasswordResetTokenDto?> GetUserOneTimePasswordResetTokenAsync(Guid userId, CancellationToken cancellationToken);
+
+    Task<bool> SaveUserOneTimePasswordResetTokenAsync(Guid userId, string resetToken, DateTimeOffset expiresAt, CancellationToken cancellationToken);
+
+    Task<bool> ClearUserOneTimePasswordResetTokenAsync(Guid userId, CancellationToken cancellationToken);
+
     Task<bool> CreateSessionAsync(Guid sessionId, Guid userId, string refreshToken, DateTimeOffset refreshTokenExpiresAt, string? deviceId, CancellationToken cancellationToken);
 
     Task<SessionTokensDto?> RefreshSessionAsync(string refreshToken, string nextRefreshToken, DateTimeOffset nextRefreshTokenExpiresAt, CancellationToken cancellationToken);
