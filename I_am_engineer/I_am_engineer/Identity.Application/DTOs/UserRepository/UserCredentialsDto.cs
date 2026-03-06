@@ -5,5 +5,11 @@ public sealed record UserCredentialsDto(
     string Email,
     string PasswordHash,
     bool IsActive,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc,
+    int CurrentFailedAttempts,
+    DateTimeOffset? LockedUntil,
     int MaxFailedAttempts,
-    int LockoutDurationMinutes);
+    int LockoutDurationMinutes,
+    DateTimeOffset LockoutCreatedAtUtc,
+    DateTimeOffset LockoutUpdatedAtUtc);

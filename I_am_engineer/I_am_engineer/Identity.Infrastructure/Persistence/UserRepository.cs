@@ -34,6 +34,63 @@ public sealed class UserRepository(IConfiguration configuration) : IUserReposito
             cancellationToken: cancellationToken));
     }
 
+    public async Task<bool> UpdateUserLockoutAsync(Guid userId, int currentFailedAttempts, DateTimeOffset? lockedUntil, CancellationToken cancellationToken)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        var affected = await connection.ExecuteAsync(new CommandDefinition(
+            commandText: "dbo.usp_Identity_UpdateUserLockout",
+            parameters: new
+            {
+                UserId = userId,
+                CurrentFailedAttempts = currentFailedAttempts,
+                LockedUntil = lockedUntil
+            },
+            commandType: CommandType.StoredProcedure,
+            cancellationToken: cancellationToken));
+
+        return affected > 0;
+    }
+
+
+    public async Task<UserOneTimePasswordResetTokenDto?> GetUserOneTimePasswordResetTokenAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        return await connection.QuerySingleOrDefaultAsync<UserOneTimePasswordResetTokenDto>(new CommandDefinition(
+            commandText: "dbo.usp_Identity_GetUserOneTimePasswordResetToken",
+            parameters: new { UserId = userId },
+            commandType: CommandType.StoredProcedure,
+            cancellationToken: cancellationToken));
+    }
+
+    public async Task<bool> SaveUserOneTimePasswordResetTokenAsync(Guid userId, string resetToken, DateTimeOffset expiresAt, CancellationToken cancellationToken)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        var affected = await connection.ExecuteAsync(new CommandDefinition(
+            commandText: "dbo.usp_Identity_SaveUserOneTimePasswordResetToken",
+            parameters: new
+            {
+                UserId = userId,
+                ResetToken = resetToken,
+                ExpiresAt = expiresAt
+            },
+            commandType: CommandType.StoredProcedure,
+            cancellationToken: cancellationToken));
+
+        return affected > 0;
+    }
+
+    public async Task<bool> ClearUserOneTimePasswordResetTokenAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        var affected = await connection.ExecuteAsync(new CommandDefinition(
+            commandText: "dbo.usp_Identity_ClearUserOneTimePasswordResetToken",
+            parameters: new { UserId = userId },
+            commandType: CommandType.StoredProcedure,
+            cancellationToken: cancellationToken));
+
+        return affected >= 0;
+    }
+
     public async Task<bool> CreateSessionAsync(Guid sessionId, Guid userId, string refreshToken, DateTimeOffset refreshTokenExpiresAt, string? deviceId, CancellationToken cancellationToken)
     {
         await using var connection = new SqlConnection(_connectionString);

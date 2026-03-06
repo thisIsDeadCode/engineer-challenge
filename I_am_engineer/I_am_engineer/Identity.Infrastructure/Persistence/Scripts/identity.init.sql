@@ -7,6 +7,18 @@ IF OBJECT_ID(N'dbo.PasswordResets', N'U') IS NOT NULL
     DROP TABLE dbo.PasswordResets;
 GO
 
+IF OBJECT_ID(N'dbo.UserOneTimePasswordResetTokens', N'U') IS NOT NULL
+    DROP TABLE dbo.UserOneTimePasswordResetTokens;
+GO
+
+IF OBJECT_ID(N'dbo.UserLockoutPolicies', N'U') IS NOT NULL
+    DROP TABLE dbo.UserLockoutPolicies;
+GO
+
+IF OBJECT_ID(N'dbo.UserLockouts', N'U') IS NOT NULL
+    DROP TABLE dbo.UserLockouts;
+GO
+
 IF OBJECT_ID(N'dbo.UserSessions', N'U') IS NOT NULL
     DROP TABLE dbo.UserSessions;
 GO
@@ -26,7 +38,21 @@ CREATE TABLE dbo.Users
     PasswordHash NVARCHAR(512) NOT NULL,
     DisplayName NVARCHAR(128) NOT NULL DEFAULT N'User',
     IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME()
+    CreatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME()
+);
+GO
+
+CREATE TABLE dbo.UserLockouts
+(
+    UserId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    CurrentFailedAttempts INT NOT NULL DEFAULT 0,
+    LockedUntil DATETIMEOFFSET NULL,
+    MaxFailedAttempts INT NOT NULL DEFAULT 5,
+    LockoutDurationMinutes INT NOT NULL DEFAULT 15,
+    CreatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT FK_UserLockouts_Users FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId)
 );
 GO
 
@@ -51,20 +77,21 @@ CREATE TABLE dbo.UserSessions
     RefreshTokenExpiresAt DATETIMEOFFSET NOT NULL,
     DeviceId NVARCHAR(128) NULL,
     IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
+    CreatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
     CONSTRAINT FK_UserSessions_Users FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId)
 );
 GO
 
-CREATE TABLE dbo.PasswordResets
+CREATE TABLE dbo.UserOneTimePasswordResetTokens
 (
-    PasswordResetId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY DEFAULT NEWID(),
-    UserId UNIQUEIDENTIFIER NOT NULL,
+    UserId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
     ResetToken NVARCHAR(512) NOT NULL UNIQUE,
     ExpiresAt DATETIMEOFFSET NOT NULL,
     IsUsed BIT NOT NULL DEFAULT 0,
-    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT FK_PasswordResets_Users FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId)
+    CreatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT FK_UserOneTimePasswordResetTokens_Users FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId)
 );
 GO
 
@@ -78,6 +105,9 @@ BEGIN
 
     INSERT INTO dbo.Users (UserId, Email, PasswordHash)
     VALUES (@UserId, @Email, @PasswordHash);
+
+    INSERT INTO dbo.UserLockouts (UserId)
+    VALUES (@UserId);
 END;
 GO
 
@@ -92,11 +122,33 @@ BEGIN
         u.Email,
         u.PasswordHash,
         u.IsActive,
-        ISNULL(ulp.MaxFailedAttempts, 5) AS MaxFailedAttempts,
-        ISNULL(ulp.LockoutDurationMinutes, 15) AS LockoutDurationMinutes
+        u.CreatedAtUtc,
+        u.UpdatedAtUtc,
+        ul.CurrentFailedAttempts,
+        ul.LockedUntil,
+        ul.MaxFailedAttempts,
+        ul.LockoutDurationMinutes,
+        ul.CreatedAtUtc AS LockoutCreatedAtUtc,
+        ul.UpdatedAtUtc AS LockoutUpdatedAtUtc
     FROM dbo.Users u
-    LEFT JOIN dbo.UserLockoutPolicies ulp ON ulp.UserId = u.UserId
+    INNER JOIN dbo.UserLockouts ul ON ul.UserId = u.UserId
     WHERE u.Email = @Email;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Identity_UpdateUserLockout
+    @UserId UNIQUEIDENTIFIER,
+    @CurrentFailedAttempts INT,
+    @LockedUntil DATETIMEOFFSET = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.UserLockouts
+    SET CurrentFailedAttempts = @CurrentFailedAttempts,
+        LockedUntil = @LockedUntil,
+        UpdatedAtUtc = SYSUTCDATETIME()
+    WHERE UserId = @UserId;
 END;
 GO
 
@@ -139,7 +191,8 @@ BEGIN
 
     UPDATE dbo.UserSessions
     SET RefreshToken = @NextRefreshToken,
-        RefreshTokenExpiresAt = @NextRefreshTokenExpiresAt
+        RefreshTokenExpiresAt = @NextRefreshTokenExpiresAt,
+        UpdatedAtUtc = SYSUTCDATETIME()
     WHERE SessionId = @SessionId;
 
     SELECT
@@ -159,9 +212,64 @@ BEGIN
     SET NOCOUNT ON;
 
     UPDATE dbo.UserSessions
-    SET IsActive = 0
+    SET IsActive = 0,
+        UpdatedAtUtc = SYSUTCDATETIME()
     WHERE SessionId = @SessionId
       AND IsActive = 1;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Identity_GetUserOneTimePasswordResetToken
+    @UserId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        t.UserId,
+        t.ResetToken,
+        t.ExpiresAt,
+        t.IsUsed,
+        t.CreatedAtUtc,
+        t.UpdatedAtUtc
+    FROM dbo.UserOneTimePasswordResetTokens t
+    WHERE t.UserId = @UserId;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Identity_SaveUserOneTimePasswordResetToken
+    @UserId UNIQUEIDENTIFIER,
+    @ResetToken NVARCHAR(512),
+    @ExpiresAt DATETIMEOFFSET
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM dbo.UserOneTimePasswordResetTokens WHERE UserId = @UserId)
+    BEGIN
+        UPDATE dbo.UserOneTimePasswordResetTokens
+        SET ResetToken = @ResetToken,
+            ExpiresAt = @ExpiresAt,
+            IsUsed = 0,
+            UpdatedAtUtc = SYSUTCDATETIME()
+        WHERE UserId = @UserId;
+    END
+    ELSE
+    BEGIN
+        INSERT INTO dbo.UserOneTimePasswordResetTokens (UserId, ResetToken, ExpiresAt)
+        VALUES (@UserId, @ResetToken, @ExpiresAt);
+    END
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Identity_ClearUserOneTimePasswordResetToken
+    @UserId UNIQUEIDENTIFIER
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DELETE FROM dbo.UserOneTimePasswordResetTokens
+    WHERE UserId = @UserId;
 END;
 GO
 
@@ -183,8 +291,10 @@ BEGIN
     IF @UserId IS NULL
         RETURN;
 
-    INSERT INTO dbo.PasswordResets (UserId, ResetToken, ExpiresAt)
-    VALUES (@UserId, @ResetToken, @ExpiresAt);
+    EXEC dbo.usp_Identity_SaveUserOneTimePasswordResetToken
+        @UserId = @UserId,
+        @ResetToken = @ResetToken,
+        @ExpiresAt = @ExpiresAt;
 END;
 GO
 
@@ -199,7 +309,7 @@ BEGIN
         pr.ResetToken,
         pr.ExpiresAt,
         pr.IsUsed
-    FROM dbo.PasswordResets pr
+    FROM dbo.UserOneTimePasswordResetTokens pr
     WHERE pr.ResetToken = @ResetToken;
 END;
 GO
@@ -214,7 +324,7 @@ BEGIN
     DECLARE @UserId UNIQUEIDENTIFIER;
 
     SELECT TOP (1) @UserId = pr.UserId
-    FROM dbo.PasswordResets pr
+    FROM dbo.UserOneTimePasswordResetTokens pr
     WHERE pr.ResetToken = @ResetToken
       AND pr.IsUsed = 0
       AND pr.ExpiresAt > SYSUTCDATETIME();
@@ -223,11 +333,13 @@ BEGIN
         RETURN;
 
     UPDATE dbo.Users
-    SET PasswordHash = @NewPasswordHash
+    SET PasswordHash = @NewPasswordHash,
+        UpdatedAtUtc = SYSUTCDATETIME()
     WHERE UserId = @UserId;
 
-    UPDATE dbo.PasswordResets
-    SET IsUsed = 1
+    UPDATE dbo.UserOneTimePasswordResetTokens
+    SET IsUsed = 1,
+        UpdatedAtUtc = SYSUTCDATETIME()
     WHERE ResetToken = @ResetToken;
 END;
 GO
