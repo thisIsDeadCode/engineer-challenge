@@ -23,6 +23,10 @@ IF OBJECT_ID(N'dbo.UserSessions', N'U') IS NOT NULL
     DROP TABLE dbo.UserSessions;
 GO
 
+IF OBJECT_ID(N'dbo.UserLockoutPolicies', N'U') IS NOT NULL
+    DROP TABLE dbo.UserLockoutPolicies;
+GO
+
 IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL
     DROP TABLE dbo.Users;
 GO
@@ -49,6 +53,19 @@ CREATE TABLE dbo.UserLockouts
     CreatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
     CONSTRAINT FK_UserLockouts_Users FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId)
+);
+GO
+
+CREATE TABLE dbo.UserLockoutPolicies
+(
+    UserId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    MaxFailedAttempts INT NOT NULL,
+    LockoutDurationMinutes INT NOT NULL,
+    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT FK_UserLockoutPolicies_Users FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId),
+    CONSTRAINT CK_UserLockoutPolicies_MaxFailedAttempts CHECK (MaxFailedAttempts > 0),
+    CONSTRAINT CK_UserLockoutPolicies_LockoutDurationMinutes CHECK (LockoutDurationMinutes > 0)
 );
 GO
 

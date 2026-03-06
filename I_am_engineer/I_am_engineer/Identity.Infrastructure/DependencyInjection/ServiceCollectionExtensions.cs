@@ -13,9 +13,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
         services.AddSingleton<ITokenGenerator, JwtAccessTokenGenerator>();
+        services.AddSingleton<IPasswordResetTokenGenerator, PasswordResetTokenGenerator>();
         services.AddSingleton<IRateLimiter, InMemoryRateLimiter>();
-        services.AddSingleton<RefreshTokenStore>();
-        services.AddSingleton<TokenRevocationStore>();
 
         return services;
     }
