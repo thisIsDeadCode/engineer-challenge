@@ -1,3 +1,5 @@
+using I_am_engineer.Identity.Domain.Exceptions.LockoutPolicy;
+
 namespace I_am_engineer.Identity.Domain.DomainServices;
 
 public sealed class LockoutPolicy
@@ -19,12 +21,12 @@ public sealed class LockoutPolicy
     {
         if (maxFailedAttempts <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(maxFailedAttempts), "Max failed attempts must be greater than zero.");
+            throw new LockoutPolicyInvalidConfigurationException(nameof(maxFailedAttempts), "Max failed attempts must be greater than zero.");
         }
 
         if (lockoutDuration <= TimeSpan.Zero)
         {
-            throw new ArgumentOutOfRangeException(nameof(lockoutDuration), "Lockout duration must be greater than zero.");
+            throw new LockoutPolicyInvalidConfigurationException(nameof(lockoutDuration), "Lockout duration must be greater than zero.");
         }
 
         MaxFailedAttempts = maxFailedAttempts;
@@ -35,7 +37,7 @@ public sealed class LockoutPolicy
     {
         if (failedAttempts < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(failedAttempts), "Failed attempts cannot be negative.");
+            throw new LockoutPolicyInvalidFailedAttemptsException();
         }
 
         return failedAttempts >= MaxFailedAttempts;
