@@ -11,6 +11,10 @@ IF OBJECT_ID(N'dbo.UserSessions', N'U') IS NOT NULL
     DROP TABLE dbo.UserSessions;
 GO
 
+IF OBJECT_ID(N'dbo.UserLockoutPolicies', N'U') IS NOT NULL
+    DROP TABLE dbo.UserLockoutPolicies;
+GO
+
 IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL
     DROP TABLE dbo.Users;
 GO
@@ -23,6 +27,19 @@ CREATE TABLE dbo.Users
     DisplayName NVARCHAR(128) NOT NULL DEFAULT N'User',
     IsActive BIT NOT NULL DEFAULT 1,
     CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME()
+);
+GO
+
+CREATE TABLE dbo.UserLockoutPolicies
+(
+    UserId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    MaxFailedAttempts INT NOT NULL,
+    LockoutDurationMinutes INT NOT NULL,
+    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT FK_UserLockoutPolicies_Users FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId),
+    CONSTRAINT CK_UserLockoutPolicies_MaxFailedAttempts CHECK (MaxFailedAttempts > 0),
+    CONSTRAINT CK_UserLockoutPolicies_LockoutDurationMinutes CHECK (LockoutDurationMinutes > 0)
 );
 GO
 
@@ -74,8 +91,11 @@ BEGIN
         u.UserId,
         u.Email,
         u.PasswordHash,
-        u.IsActive
+        u.IsActive,
+        ISNULL(ulp.MaxFailedAttempts, 5) AS MaxFailedAttempts,
+        ISNULL(ulp.LockoutDurationMinutes, 15) AS LockoutDurationMinutes
     FROM dbo.Users u
+    LEFT JOIN dbo.UserLockoutPolicies ulp ON ulp.UserId = u.UserId
     WHERE u.Email = @Email;
 END;
 GO
