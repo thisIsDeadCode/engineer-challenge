@@ -82,14 +82,9 @@ public sealed class Session : IEventEntity
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
 
-    public static Session Create(Guid userId, string? deviceId, TimeSpan refreshTokenLifetime, ITokenGenerator tokenGenerator)
+    public static Session Create(Guid userId, string? deviceId, ITokenGenerator tokenGenerator)
     {
         ArgumentNullException.ThrowIfNull(tokenGenerator);
-
-        if (refreshTokenLifetime <= TimeSpan.Zero)
-        {
-            throw new ArgumentException("Refresh token lifetime must be positive.", nameof(refreshTokenLifetime));
-        }
 
         var now = DateTimeOffset.UtcNow;
         var accessToken = tokenGenerator.GenerateAccessToken(userId);
@@ -101,7 +96,7 @@ public sealed class Session : IEventEntity
             accessToken: accessToken.Value,
             accessTokenExpiresAt: accessToken.ExpiresAt,
             refreshToken: refreshToken.Value,
-            refreshTokenExpiresAt: now.Add(refreshTokenLifetime),
+            refreshTokenExpiresAt: refreshToken.ExpiresAt,
             deviceId: deviceId,
             isActive: true,
             createdAtUtc: now,

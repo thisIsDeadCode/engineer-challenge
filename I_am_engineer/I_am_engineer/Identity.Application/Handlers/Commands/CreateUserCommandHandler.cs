@@ -16,7 +16,6 @@ public sealed class CreateUserCommandHandler(
 {
     private static readonly PasswordPolicy PasswordPolicy = new();
     private static readonly SessionPolicy SessionPolicy = new();
-    private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(2);
 
     public async Task<AuthTokensResponse> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
@@ -43,7 +42,7 @@ public sealed class CreateUserCommandHandler(
         }
 
         SessionPolicy.EnsureCanOpenSession(activeSessionsCount: 0);
-        var session = Session.Create(user.Id, deviceId: null, RefreshTokenLifetime, tokenGenerator);
+        var session = Session.Create(user.Id, deviceId: null, tokenGenerator);
 
         var userSaved = await userRepository.SaveAsync(user, cancellationToken);
         if (!userSaved)
