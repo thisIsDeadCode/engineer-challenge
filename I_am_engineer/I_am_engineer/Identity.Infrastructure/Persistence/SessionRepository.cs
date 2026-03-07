@@ -12,6 +12,20 @@ namespace I_am_engineer.Identity.Infrastructure.Persistence;
 public sealed class SessionRepository(IConfiguration configuration, ISender sender)
     : SqlRepository(configuration), ISessionRepository
 {
+    public async Task<Session?> GetByIdAsync(Guid sessionId, CancellationToken cancellationToken)
+    {
+        return await ExecuteReadAsync(async connection =>
+        {
+            var session = await connection.QuerySingleOrDefaultAsync<SessionDto>(new CommandDefinition(
+                commandText: "dbo.usp_Identity_GetSessionById",
+                parameters: new { SessionId = sessionId },
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken));
+
+            return session is null ? null : RestoreAggregate(session);
+        }, cancellationToken);
+    }
+
     public async Task<Session?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)
     {
         return await ExecuteReadAsync(async connection =>
