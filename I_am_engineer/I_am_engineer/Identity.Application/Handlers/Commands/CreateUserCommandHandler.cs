@@ -3,14 +3,14 @@ using I_am_engineer.Identity.Application.Commands;
 using I_am_engineer.Identity.Application.Responses;
 using I_am_engineer.Identity.Domain.Aggregates;
 using I_am_engineer.Identity.Domain.DomainServices;
-using I_am_engineer.Identity.Domain.Exceptions.PasswordPolicy;
+using I_am_engineer.Identity.Domain.Exceptions;
 using MediatR;
 
 namespace I_am_engineer.Identity.Application.Handlers.Commands;
 
 public sealed class CreateUserCommandHandler(
     IUserRepository userRepository,
-    ISessionRepository sessionRepository,
+    IUserRegistrationRepository userRegistrationRepository,
     IPasswordHasher passwordHasher,
     ITokenGenerator tokenGenerator) : IRequestHandler<CreateUserCommand, AuthTokensResponse>
 {
@@ -19,49 +19,45 @@ public sealed class CreateUserCommandHandler(
 
     public async Task<AuthTokensResponse> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
-        if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
-        {
-            return new AuthTokensResponse(string.Empty, string.Empty, DateTimeOffset.MinValue, DateTimeOffset.MinValue, false, "Passwords do not match.");
-        }
-
-        var existingUser = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
-        if (existingUser is not null)
-        {
-            return new AuthTokensResponse(string.Empty, string.Empty, DateTimeOffset.MinValue, DateTimeOffset.MinValue, false, "User with this email already exists.");
-        }
-
-        User user;
-
         try
         {
-            user = User.CreateNew(request.Email, request.Password, passwordHasher, PasswordPolicy);
+            if (!string.Equals(request.Password, request.ConfirmPassword, StringComparison.Ordinal))
+            {
+                return new AuthTokensResponse(string.Empty, string.Empty, DateTimeOffset.MinValue, DateTimeOffset.MinValue, false, "Passwords do not match.");
+            }
+
+            var existingUser = await userRepository.GetByEmailAsync(request.Email, cancellationToken);
+            if (existingUser is not null)
+            {
+                return new AuthTokensResponse(string.Empty, string.Empty, DateTimeOffset.MinValue, DateTimeOffset.MinValue, false, "User with this email already exists.");
+            }
+
+            var user = User.CreateNew(request.Email, request.Password, passwordHasher, PasswordPolicy);
+
+            SessionPolicy.EnsureCanOpenSession(activeSessionsCount: 0);
+            var session = Session.Create(user.Id, deviceId: null, tokenGenerator);
+
+            var isSaved = await userRegistrationRepository.SaveUserAndSessionAsync(user, session, cancellationToken);
+            if (!isSaved)
+            {
+                return new AuthTokensResponse(string.Empty, string.Empty, DateTimeOffset.MinValue, DateTimeOffset.MinValue, false, "Failed to create user.");
+            }
+
+            return new AuthTokensResponse(
+                session.AccessToken.Value,
+                session.RefreshToken.Value,
+                session.AccessToken.ExpiresAt,
+                session.RefreshToken.ExpiresAt,
+                true,
+                null);
         }
-        catch (PasswordPolicyViolationException ex)
+        catch (DomainException ex)
         {
             return new AuthTokensResponse(string.Empty, string.Empty, DateTimeOffset.MinValue, DateTimeOffset.MinValue, false, ex.Message);
         }
-
-        SessionPolicy.EnsureCanOpenSession(activeSessionsCount: 0);
-        var session = Session.Create(user.Id, deviceId: null, tokenGenerator);
-
-        var userSaved = await userRepository.SaveAsync(user, cancellationToken);
-        if (!userSaved)
+        catch
         {
-            return new AuthTokensResponse(string.Empty, string.Empty, DateTimeOffset.MinValue, DateTimeOffset.MinValue, false, "Failed to save user.");
+            return new AuthTokensResponse(string.Empty, string.Empty, DateTimeOffset.MinValue, DateTimeOffset.MinValue, false, "Something went wrong.");
         }
-
-        var sessionSaved = await sessionRepository.SaveAsync(session, cancellationToken);
-        if (!sessionSaved)
-        {
-            return new AuthTokensResponse(string.Empty, string.Empty, DateTimeOffset.MinValue, DateTimeOffset.MinValue, false, "Failed to save session.");
-        }
-
-        return new AuthTokensResponse(
-            session.AccessToken.Value,
-            session.RefreshToken.Value,
-            session.AccessToken.ExpiresAt,
-            session.RefreshToken.ExpiresAt,
-            true,
-            null);
     }
 }

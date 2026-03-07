@@ -12,6 +12,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
+        services.AddScoped<IUserRegistrationRepository, UserRegistrationRepository>();
         services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
         services.AddSingleton<ITokenGenerator, JwtAccessTokenGenerator>();
         services.AddSingleton<IPasswordResetTokenGenerator, PasswordResetTokenGenerator>();

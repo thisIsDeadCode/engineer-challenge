@@ -5,16 +5,13 @@ using I_am_engineer.Identity.Application.Commands.Events;
 using I_am_engineer.Identity.Application.DTOs.SessionRepository;
 using I_am_engineer.Identity.Domain.Aggregates;
 using MediatR;
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 
 namespace I_am_engineer.Identity.Infrastructure.Persistence;
 
-public sealed class SessionRepository(IConfiguration configuration, ISender sender) : ISessionRepository
+public sealed class SessionRepository(IConfiguration configuration, ISender sender)
+    : SqlRepository(configuration), ISessionRepository
 {
-    private readonly string _connectionString = configuration.GetConnectionString("IdentityDb")
-        ?? throw new InvalidOperationException("Connection string 'IdentityDb' is not configured.");
-
     public async Task<Session?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)
     {
         return await ExecuteReadAsync(async connection =>
@@ -63,9 +60,10 @@ public sealed class SessionRepository(IConfiguration configuration, ISender send
 
             if (existingSession is null)
             {
-                var created = await connection.ExecuteAsync(new CommandDefinition(
-                    commandText: "dbo.usp_Identity_CreateSession",
-                    parameters: new
+                await EnsureProcedureSucceededAsync(
+                    connection,
+                    "dbo.usp_Identity_CreateSession",
+                    new
                     {
                         SessionId = session.Id,
                         UserId = session.UserId,
@@ -75,16 +73,16 @@ public sealed class SessionRepository(IConfiguration configuration, ISender send
                         RefreshTokenExpiresAt = session.RefreshToken.ExpiresAt,
                         DeviceId = session.DeviceId
                     },
-                    commandType: CommandType.StoredProcedure,
-                    transaction: transaction,
-                    cancellationToken: cancellationToken));
+                    transaction,
+                    cancellationToken);
 
-                return created > 0;
+                return true;
             }
 
-            var updated = await connection.ExecuteAsync(new CommandDefinition(
-                commandText: "dbo.usp_Identity_UpdateSessionAggregateState",
-                parameters: new
+            await EnsureProcedureSucceededAsync(
+                connection,
+                "dbo.usp_Identity_UpdateSessionAggregateState",
+                new
                 {
                     SessionId = session.Id,
                     AccessToken = session.AccessToken.Value,
@@ -93,11 +91,10 @@ public sealed class SessionRepository(IConfiguration configuration, ISender send
                     RefreshTokenExpiresAt = session.RefreshToken.ExpiresAt,
                     IsActive = session.IsActive
                 },
-                commandType: CommandType.StoredProcedure,
-                transaction: transaction,
-                cancellationToken: cancellationToken));
+                transaction,
+                cancellationToken);
 
-            return updated > 0;
+            return true;
         }, cancellationToken);
 
         if (isSaved)
@@ -106,34 +103,6 @@ public sealed class SessionRepository(IConfiguration configuration, ISender send
         }
 
         return isSaved;
-    }
-
-    private async Task<T> ExecuteReadAsync<T>(Func<SqlConnection, Task<T>> action, CancellationToken cancellationToken)
-    {
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        return await action(connection);
-    }
-
-    private async Task<T> ExecuteInTransactionAsync<T>(Func<SqlConnection, SqlTransaction, Task<T>> action, CancellationToken cancellationToken)
-    {
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken);
-        await using var transaction = await connection.BeginTransactionAsync(cancellationToken) as SqlTransaction
-            ?? throw new InvalidOperationException("Failed to start SQL transaction.");
-
-        try
-        {
-            var result = await action(connection, transaction);
-            await transaction.CommitAsync(cancellationToken);
-            return result;
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
     }
 
     private static Session RestoreAggregate(SessionDto session)

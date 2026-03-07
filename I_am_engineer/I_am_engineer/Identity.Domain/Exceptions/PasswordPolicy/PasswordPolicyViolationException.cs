@@ -1,6 +1,7 @@
+using I_am_engineer.Identity.Domain.Exceptions;
 namespace I_am_engineer.Identity.Domain.Exceptions.PasswordPolicy;
 
-public sealed class PasswordPolicyViolationException : Exception
+public sealed class PasswordPolicyViolationException : DomainException
 {
     public PasswordPolicyViolationException(IReadOnlyCollection<string> violations)
         : base(BuildMessage(violations))
