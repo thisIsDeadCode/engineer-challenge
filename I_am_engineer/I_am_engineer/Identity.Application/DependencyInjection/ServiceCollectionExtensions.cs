@@ -1,3 +1,4 @@
+using I_am_engineer.Identity.Domain.DomainServices;
 using I_am_engineer.Identity.Application.Handlers.Commands;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +10,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddIdentityApplication(this IServiceCollection services)
     {
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateUserCommandHandler).Assembly));
+        services.AddScoped<EventService>();
 
         return services;
     }

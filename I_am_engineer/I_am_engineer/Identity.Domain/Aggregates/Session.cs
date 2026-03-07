@@ -5,7 +5,7 @@ using I_am_engineer.Identity.Domain.ValueObjects;
 
 namespace I_am_engineer.Identity.Domain.Aggregates;
 
-public sealed class Session
+public sealed class Session : IEventEntity
 {
     private readonly List<IDomainEvent> _domainEvents = [];
 

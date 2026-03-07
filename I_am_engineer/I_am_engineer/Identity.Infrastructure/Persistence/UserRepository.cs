@@ -1,14 +1,16 @@
 using System.Data;
 using Dapper;
 using I_am_engineer.Identity.Application.Abstractions;
+using I_am_engineer.Identity.Application.Commands.Events;
 using I_am_engineer.Identity.Application.DTOs.UserRepository;
 using I_am_engineer.Identity.Domain.Aggregates;
+using MediatR;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 
 namespace I_am_engineer.Identity.Infrastructure.Persistence;
 
-public sealed class UserRepository(IConfiguration configuration) : IUserRepository
+public sealed class UserRepository(IConfiguration configuration, ISender sender) : IUserRepository
 {
     private readonly string _connectionString = configuration.GetConnectionString("IdentityDb")
         ?? throw new InvalidOperationException("Connection string 'IdentityDb' is not configured.");
@@ -72,7 +74,7 @@ public sealed class UserRepository(IConfiguration configuration) : IUserReposito
             return true;
         }
 
-        return await ExecuteInTransactionAsync(async (connection, transaction) =>
+        var isSaved = await ExecuteInTransactionAsync(async (connection, transaction) =>
         {
             var existingUser = await connection.QuerySingleOrDefaultAsync<UserCredentialsDto>(new CommandDefinition(
                 commandText: "dbo.usp_Identity_GetUserCredentialsById",
@@ -142,6 +144,13 @@ public sealed class UserRepository(IConfiguration configuration) : IUserReposito
 
             return tokenAffected >= 0;
         }, cancellationToken);
+
+        if (isSaved)
+        {
+            await sender.Send(new ProcessDomainEventsCommand([user]), cancellationToken);
+        }
+
+        return isSaved;
     }
 
     private async Task<T> ExecuteReadAsync<T>(Func<SqlConnection, Task<T>> action, CancellationToken cancellationToken)
