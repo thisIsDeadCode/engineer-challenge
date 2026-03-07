@@ -78,11 +78,25 @@ public sealed class JwtAccessTokenGenerator : ITokenGenerator
                                     expiresAt);
     }
 
-    public RefreshToken GenerateRefreshToken()
+    public RefreshToken GenerateRefreshToken(Guid userId)
     {
+        if (userId == Guid.Empty)
+        {
+            throw new ArgumentException("User id is required.", nameof(userId));
+        }
+
         var expiresAt = DateTimeOffset.UtcNow.Add(_refreshTokenLifetime);
-        var bytes = RandomNumberGenerator.GetBytes(48);
-        return new RefreshToken(Base64UrlEncode(bytes), expiresAt);
+
+        var nonce = RandomNumberGenerator.GetBytes(32);
+        var payload = Encoding.UTF8.GetBytes($"{userId:N}:{expiresAt.ToUnixTimeSeconds()}");
+        var tokenSource = new byte[payload.Length + nonce.Length];
+
+        Buffer.BlockCopy(payload, 0, tokenSource, 0, payload.Length);
+        Buffer.BlockCopy(nonce, 0, tokenSource, payload.Length, nonce.Length);
+
+        var signedToken = ComputeSignature(Base64UrlEncode(tokenSource));
+
+        return new RefreshToken(signedToken, expiresAt);
     }
 
     private string ComputeSignature(string value)
