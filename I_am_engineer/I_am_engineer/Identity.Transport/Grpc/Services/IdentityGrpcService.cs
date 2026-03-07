@@ -16,7 +16,7 @@ public class IdentityGrpcService(ISender sender) : IdentityService.IdentityServi
 
     public override async Task<ApiResponseAuthTokens> Login(LoginRequest request, ServerCallContext context)
     {
-        var response = await sender.Send(new LoginCommand(request.Email, request.Password, request.DeviceId), context.CancellationToken);
+        var response = await sender.Send(new LoginCommand(request.Email, request.Password), context.CancellationToken);
         return response.ToGrpcApiResponse();
     }
 

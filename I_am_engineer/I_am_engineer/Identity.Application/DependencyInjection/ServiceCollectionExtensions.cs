@@ -1,3 +1,4 @@
+using I_am_engineer.Identity.Application.Behaviors;
 using I_am_engineer.Identity.Application.Handlers.Commands;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +11,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddIdentityApplication(this IServiceCollection services)
     {
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateUserCommandHandler).Assembly));
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(RateLimitBehavior<,>));
         services.AddSingleton<EventService>();
 
         return services;

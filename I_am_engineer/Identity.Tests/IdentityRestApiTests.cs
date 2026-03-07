@@ -41,8 +41,7 @@ public sealed class IdentityRestApiTests : IClassFixture<TestApplicationFactory>
         var response = await client.PostAsJsonAsync("/api/v1/identity/login", new
         {
             email = "test@example.com",
-            password = "Secret123!",
-            deviceId = "device-1"
+            password = "Secret123!"
         });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

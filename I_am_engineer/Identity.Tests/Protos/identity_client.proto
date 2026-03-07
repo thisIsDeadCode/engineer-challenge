@@ -23,7 +23,6 @@ message CreateUserRequest {
 message LoginRequest {
   string email = 1;
   string password = 2;
-  string device_id = 3;
 }
 
 message RefreshSessionRequest {
