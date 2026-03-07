@@ -1,4 +1,5 @@
 using I_am_engineer.Identity.Application.Abstractions;
+using I_am_engineer.Identity.Domain.Events;
 using I_am_engineer.Identity.Domain.DomainServices;
 using I_am_engineer.Identity.Domain.Exceptions.User;
 using I_am_engineer.Identity.Domain.ValueObjects;
@@ -7,6 +8,8 @@ namespace I_am_engineer.Identity.Domain.Aggregates;
 
 public sealed class User
 {
+    private readonly List<IDomainEvent> _domainEvents = [];
+
     private User(
         Guid id,
         Email email,
@@ -94,6 +97,8 @@ public sealed class User
 
     public bool IsChanged { get; private set; }
 
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
 
     public static User Restore(
         Guid id,
@@ -139,6 +144,8 @@ public sealed class User
 
         user.SetPassword(passwordHasher, password);
 
+        user.AddDomainEvent(new UserRegistered(user.Id, user.Email.Value));
+
         user.IsChanged = true;
 
         return user;
@@ -154,6 +161,7 @@ public sealed class User
         if (LockoutPolicy.ShouldLockout(FailedLoginAttempts))
         {
             LockedUntilUtc = LockoutPolicy.CalculateLockoutEnd(now);
+            AddDomainEvent(new UserLockedOut(Id, LockedUntilUtc));
         }
 
         UpdatedAtUtc = now;
@@ -186,6 +194,7 @@ public sealed class User
         PasswordResetToken = null;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
         IsChanged = true;
+        AddDomainEvent(new PasswordChanged(Id));
     }
 
     public void IssuePasswordResetToken(IPasswordResetTokenGenerator passwordResetTokenGenerator)
@@ -197,6 +206,30 @@ public sealed class User
         PasswordResetToken = passwordResetTokenGenerator.GenerateToken();
         UpdatedAtUtc = DateTimeOffset.UtcNow;
         IsChanged = true;
+        AddDomainEvent(new PasswordResetRequested(Id, PasswordResetToken.Value, PasswordResetToken.ExpiresAt));
+    }
+
+    public void MarkPasswordResetTokenAsUsed(string providedToken)
+    {
+        ThrowIfInactive();
+
+        if (!CanConfirmPasswordReset(providedToken))
+        {
+            throw new InvalidOperationException("Password reset token is invalid or expired.");
+        }
+
+        PasswordResetToken = I_am_engineer.Identity.Domain.ValueObjects.PasswordResetToken.Create(
+            PasswordResetToken!.Value,
+            isUsed: true,
+            PasswordResetToken.ExpiresAt);
+
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+        IsChanged = true;
+    }
+
+    public void ClearDomainEvents()
+    {
+        _domainEvents.Clear();
     }
 
     public void Deactivate()
@@ -235,5 +268,10 @@ public sealed class User
         {
             throw new UserIsLockedOutException();
         }
+    }
+
+    private void AddDomainEvent(IDomainEvent domainEvent)
+    {
+        _domainEvents.Add(domainEvent);
     }
 }

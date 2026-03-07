@@ -111,13 +111,44 @@ BEGIN
 END;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.usp_Identity_UpdateUserLockout
-    @UserId UNIQUEIDENTIFIER,
-    @CurrentFailedAttempts INT,
-    @LockedUntil DATETIMEOFFSET = NULL
+CREATE OR ALTER PROCEDURE dbo.usp_Identity_GetUserCredentialsById
+    @UserId UNIQUEIDENTIFIER
 AS
 BEGIN
     SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        u.UserId,
+        u.Email,
+        u.PasswordHash,
+        u.IsActive,
+        u.CreatedAtUtc,
+        u.UpdatedAtUtc,
+        ul.CurrentFailedAttempts,
+        ul.LockedUntil,
+        ul.CreatedAtUtc AS LockoutCreatedAtUtc,
+        ul.UpdatedAtUtc AS LockoutUpdatedAtUtc
+    FROM dbo.Users u
+    INNER JOIN dbo.UserLockouts ul ON ul.UserId = u.UserId
+    WHERE u.UserId = @UserId;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.usp_Identity_UpdateUserAggregateState
+    @UserId UNIQUEIDENTIFIER,
+    @PasswordHash NVARCHAR(512),
+    @CurrentFailedAttempts INT,
+    @LockedUntil DATETIMEOFFSET = NULL,
+    @IsActive BIT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE dbo.Users
+    SET PasswordHash = @PasswordHash,
+        IsActive = @IsActive,
+        UpdatedAtUtc = SYSUTCDATETIME()
+    WHERE UserId = @UserId;
 
     UPDATE dbo.UserLockouts
     SET CurrentFailedAttempts = @CurrentFailedAttempts,
@@ -215,7 +246,8 @@ GO
 CREATE OR ALTER PROCEDURE dbo.usp_Identity_SaveUserOneTimePasswordResetToken
     @UserId UNIQUEIDENTIFIER,
     @ResetToken NVARCHAR(512),
-    @ExpiresAt DATETIMEOFFSET
+    @ExpiresAt DATETIMEOFFSET,
+    @IsUsed BIT = 0
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -225,14 +257,14 @@ BEGIN
         UPDATE dbo.UserOneTimePasswordResetTokens
         SET ResetToken = @ResetToken,
             ExpiresAt = @ExpiresAt,
-            IsUsed = 0,
+            IsUsed = @IsUsed,
             UpdatedAtUtc = SYSUTCDATETIME()
         WHERE UserId = @UserId;
     END
     ELSE
     BEGIN
-        INSERT INTO dbo.UserOneTimePasswordResetTokens (UserId, ResetToken, ExpiresAt)
-        VALUES (@UserId, @ResetToken, @ExpiresAt);
+        INSERT INTO dbo.UserOneTimePasswordResetTokens (UserId, ResetToken, ExpiresAt, IsUsed)
+        VALUES (@UserId, @ResetToken, @ExpiresAt, @IsUsed);
     END
 END;
 GO
