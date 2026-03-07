@@ -10,5 +10,7 @@ public interface ISessionRepository
 
     Task<Session?> GetByEmailAsync(string email, CancellationToken cancellationToken);
 
+    Task<Session?> GetByRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken);
+
     Task<bool> SaveAsync(Session session, CancellationToken cancellationToken);
 }

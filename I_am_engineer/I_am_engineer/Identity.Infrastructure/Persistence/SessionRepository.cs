@@ -54,6 +54,20 @@ public sealed class SessionRepository(IConfiguration configuration, ISender send
         }, cancellationToken);
     }
 
+    public async Task<Session?> GetByRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken)
+    {
+        return await ExecuteReadAsync(async connection =>
+        {
+            var session = await connection.QuerySingleOrDefaultAsync<SessionDto>(new CommandDefinition(
+                commandText: "dbo.usp_Identity_GetSessionByRefreshToken",
+                parameters: new { RefreshToken = refreshToken },
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken));
+
+            return session is null ? null : RestoreAggregate(session);
+        }, cancellationToken);
+    }
+
     public async Task<bool> SaveAsync(Session session, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(session);

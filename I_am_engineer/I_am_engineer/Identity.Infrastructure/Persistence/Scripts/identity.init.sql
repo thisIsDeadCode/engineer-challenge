@@ -255,6 +255,29 @@ BEGIN
 END;
 GO
 
+
+CREATE OR ALTER PROCEDURE dbo.usp_Identity_GetSessionByRefreshToken
+    @RefreshToken NVARCHAR(512)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP (1)
+        s.SessionId,
+        s.UserId,
+        s.AccessToken,
+        s.AccessTokenExpiresAt,
+        s.RefreshToken,
+        s.RefreshTokenExpiresAt,
+        s.IsActive,
+        s.CreatedAtUtc,
+        s.UpdatedAtUtc
+    FROM dbo.UserSessions s
+    WHERE s.RefreshToken = @RefreshToken
+    ORDER BY s.UpdatedAtUtc DESC;
+END;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.usp_Identity_UpdateSessionAggregateState
     @SessionId UNIQUEIDENTIFIER,
     @AccessToken NVARCHAR(MAX),
