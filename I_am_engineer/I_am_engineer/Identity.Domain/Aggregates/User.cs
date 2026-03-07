@@ -17,7 +17,6 @@ public sealed class User
         int failedLoginAttempts,
         DateTimeOffset? lockedUntilUtc,
         PasswordResetToken? passwordResetToken,
-        DateTimeOffset? passwordResetTokenExpiresAtUtc,
         DateTimeOffset createdAtUtc,
         DateTimeOffset updatedAtUtc)
     {
@@ -36,11 +35,6 @@ public sealed class User
             throw new UserInvalidLockoutTimestampException();
         }
 
-        if (passwordResetToken is null && passwordResetTokenExpiresAtUtc.HasValue)
-        {
-            throw new UserInvalidPasswordResetStateException();
-        }
-
         Id = id;
         Email = email;
         PasswordHash = passwordHash;
@@ -50,7 +44,6 @@ public sealed class User
         FailedLoginAttempts = failedLoginAttempts;
         LockedUntilUtc = lockedUntilUtc;
         PasswordResetToken = passwordResetToken;
-        PasswordResetTokenExpiresAtUtc = passwordResetTokenExpiresAtUtc;
         CreatedAtUtc = createdAtUtc;
         UpdatedAtUtc = updatedAtUtc;
     }
@@ -72,7 +65,6 @@ public sealed class User
             failedLoginAttempts: 0,
             lockedUntilUtc: null,
             passwordResetToken: null,
-            passwordResetTokenExpiresAtUtc: null,
             createdAtUtc: now,
             updatedAtUtc: now)
     {
@@ -84,79 +76,137 @@ public sealed class User
 
     public PasswordHash? PasswordHash { get; private set; }
 
-    public bool IsPasswordSet => PasswordHash is not null;
-
-    public LockoutPolicy LockoutPolicy { get; }
-
-    public PasswordPolicy PasswordPolicy { get; }
-
-    public bool IsActive { get; private set; }
+    public PasswordResetToken? PasswordResetToken { get; private set; }
 
     public int FailedLoginAttempts { get; private set; }
 
     public DateTimeOffset? LockedUntilUtc { get; private set; }
 
-    public PasswordResetToken? PasswordResetToken { get; private set; }
+    public bool IsActive { get; private set; }
 
-    public DateTimeOffset? PasswordResetTokenExpiresAtUtc { get; private set; }
+    public LockoutPolicy LockoutPolicy { get; }
+
+    public PasswordPolicy PasswordPolicy { get; }
 
     public DateTimeOffset CreatedAtUtc { get; }
 
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
+
+    public bool IsPasswordSet => PasswordHash is not null;
+    public bool IsChanged { get; private set; }
+
+
     public static User Restore(
         Guid id,
-        Email email,
-        PasswordHash passwordHash,
-        bool isActive,
+        string email,
+        string passwordHash,
+        string? passwordResetTokenValue,
+        bool? passwordResetTokenIsUsed,
+        DateTimeOffset? passwordResetTokenExpiresAt,
         int failedLoginAttempts,
         DateTimeOffset? lockedUntilUtc,
-        PasswordResetToken? passwordResetToken,
-        DateTimeOffset? passwordResetTokenExpiresAtUtc,
+        bool isActive,
         DateTimeOffset createdAtUtc,
-        DateTimeOffset updatedAtUtc,
-        int lockoutMaxFailedAttempts,
-        TimeSpan lockoutDuration)
+        DateTimeOffset updatedAtUtc)
     {
-        var lockoutPolicy = new LockoutPolicy(lockoutMaxFailedAttempts, lockoutDuration);
+        var lockoutPolicy = new LockoutPolicy();
         var passwordPolicy = new PasswordPolicy();
 
         return new User(
             id,
-            email ?? throw new ArgumentNullException(nameof(email)),
-            passwordHash ?? throw new ArgumentNullException(nameof(passwordHash)),
+            Email.Create(email),
+            new PasswordHash(passwordHash),
             lockoutPolicy,
             passwordPolicy,
             isActive,
             failedLoginAttempts,
             lockedUntilUtc,
-            passwordResetToken,
-            passwordResetTokenExpiresAtUtc,
+            passwordResetTokenValue is null ? null : PasswordResetToken.Create(passwordResetTokenValue, passwordResetTokenIsUsed, passwordResetTokenExpiresAt),
             createdAtUtc,
             updatedAtUtc);
     }
 
-    public static User RegisterNew(
-        Guid id,
-        Email email,
-        DateTimeOffset now,
-        int lockoutMaxFailedAttempts = LockoutPolicy.DefaultMaxFailedAttempts,
-        TimeSpan? lockoutDuration = null)
+    public static User CreateNew(string email)
     {
-        var lockoutPolicy = new LockoutPolicy(lockoutMaxFailedAttempts, lockoutDuration ?? LockoutPolicy.DefaultLockoutDuration);
+        var lockoutPolicy = new LockoutPolicy();
         var passwordPolicy = new PasswordPolicy();
 
-        return new User(
-            id,
-            email ?? throw new ArgumentNullException(nameof(email)),
+        var user = new User(
+            Guid.NewGuid(),
+            Email.Create(email),
             lockoutPolicy,
             passwordPolicy,
-            now);
+            DateTimeOffset.UtcNow);
+
+        user.IsChanged = true;
+
+        return user;
     }
 
-    public bool IsLockedOut(DateTimeOffset now)
+    public void RecordFailedLoginAttempt()
     {
-        return LockoutPolicy.IsLockedOut(LockedUntilUtc, now);
+        ThrowIfInactive();
+        EnsurePasswordIsSet();
+
+        var now = DateTimeOffset.UtcNow;
+        FailedLoginAttempts++;
+
+        if (LockoutPolicy.ShouldLockout(FailedLoginAttempts))
+        {
+            LockedUntilUtc = LockoutPolicy.CalculateLockoutEnd(now);
+        }
+
+        UpdatedAtUtc = now;
+        IsChanged = true;
+    }
+
+    public void RecordSuccessfulLogin()
+    {
+        ThrowIfInactive();
+        ThrowIfLockedOut();
+        EnsurePasswordIsSet();
+
+        FailedLoginAttempts = 0;
+        LockedUntilUtc = null;
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+        IsChanged = true;
+    }
+
+    public void SetPassword(IPasswordHasher passwordHasher, string newPassword)
+    {
+        ThrowIfInactive();
+
+        ArgumentNullException.ThrowIfNull(passwordHasher);
+
+        PasswordPolicy.EnsureCompliant(newPassword);
+
+        PasswordHash = passwordHasher.Hash(newPassword);
+
+        FailedLoginAttempts = 0;
+        LockedUntilUtc = null;
+        PasswordResetToken = null;
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+        IsChanged = true;
+    }
+
+    public void IssuePasswordResetToken(IPasswordResetTokenGenerator passwordResetTokenGenerator)
+    {
+        ThrowIfInactive();
+        EnsurePasswordIsSet();
+
+        ArgumentNullException.ThrowIfNull(passwordResetTokenGenerator);
+
+        PasswordResetToken = passwordResetTokenGenerator.GenerateToken();
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+        IsChanged = true;
+    }
+
+    public void Deactivate()
+    {
+        IsActive = false;
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+        IsChanged = true;
     }
 
     public void EnsurePasswordIsSet()
@@ -167,84 +217,21 @@ public sealed class User
         }
     }
 
-    public void RecordFailedLoginAttempt(DateTimeOffset now)
-    {
-        ThrowIfInactive();
-        EnsurePasswordIsSet();
-
-        FailedLoginAttempts++;
-
-        if (LockoutPolicy.ShouldLockout(FailedLoginAttempts))
-        {
-            LockedUntilUtc = LockoutPolicy.CalculateLockoutEnd(now);
-        }
-
-        UpdatedAtUtc = now;
-    }
-
-    public void RecordSuccessfulLogin(DateTimeOffset now)
-    {
-        ThrowIfInactive();
-        ThrowIfLockedOut(now);
-        EnsurePasswordIsSet();
-
-        FailedLoginAttempts = 0;
-        LockedUntilUtc = null;
-        UpdatedAtUtc = now;
-    }
-
-    public void SetPassword(IPasswordHasher passwordHasher, string newPassword, DateTimeOffset now)
-    {
-        ThrowIfInactive();
-
-        ArgumentNullException.ThrowIfNull(passwordHasher);
-
-        PasswordPolicy.EnsureCompliant(newPassword);
-
-        var passwordHash = passwordHasher.Hash(newPassword);
-        PasswordHash = new PasswordHash(passwordHash);
-
-        FailedLoginAttempts = 0;
-        LockedUntilUtc = null;
-        PasswordResetToken = null;
-        PasswordResetTokenExpiresAtUtc = null;
-        UpdatedAtUtc = now;
-    }
-
-    public void IssuePasswordResetToken(IPasswordResetTokenGenerator passwordResetTokenGenerator, DateTimeOffset expiresAtUtc, DateTimeOffset now)
-    {
-        ThrowIfInactive();
-        EnsurePasswordIsSet();
-
-        ArgumentNullException.ThrowIfNull(passwordResetTokenGenerator);
-
-        if (expiresAtUtc <= now)
-        {
-            throw new UserInvalidPasswordResetExpirationException();
-        }
-
-        var generatedToken = passwordResetTokenGenerator.Generate();
-        PasswordResetToken = new PasswordResetToken(generatedToken);
-        PasswordResetTokenExpiresAtUtc = expiresAtUtc;
-        UpdatedAtUtc = now;
-    }
-
-    public bool CanConfirmPasswordReset(PasswordResetToken providedToken, DateTimeOffset now)
+    public bool CanConfirmPasswordReset(string providedToken, DateTimeOffset now)
     {
         EnsurePasswordIsSet();
 
-        if (PasswordResetToken is null || PasswordResetTokenExpiresAtUtc is null)
+        if (PasswordResetToken is null || !PasswordResetToken.IsActive)
         {
             return false;
         }
 
-        return PasswordResetToken == providedToken && PasswordResetTokenExpiresAtUtc > now;
+        return PasswordResetToken.Value == providedToken;
     }
 
-    public void Deactivate(DateTimeOffset now)
+    public bool IsLockedOut()
     {
-        IsActive = false;
-        UpdatedAtUtc = now;
+        return LockoutPolicy.IsLockedOut(LockedUntilUtc, DateTimeOffset.UtcNow);
     }
 
     private void ThrowIfInactive()
@@ -255,9 +242,9 @@ public sealed class User
         }
     }
 
-    private void ThrowIfLockedOut(DateTimeOffset now)
+    private void ThrowIfLockedOut()
     {
-        if (IsLockedOut(now))
+        if (IsLockedOut())
         {
             throw new UserIsLockedOutException();
         }

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using I_am_engineer.Identity.Application.Abstractions;
+using I_am_engineer.Identity.Domain.ValueObjects;
 using I_am_engineer.Identity.Infrastructure.Exceptions.JwtAccessTokenGenerator;
 using Microsoft.Extensions.Configuration;
 
@@ -44,7 +45,8 @@ public sealed class JwtAccessTokenGenerator : ITokenGenerator
         _accessTokenLifetime = TimeSpan.FromMinutes(lifetimeInMinutes);
     }
 
-    public (string Token, DateTimeOffset ExpiresAt) GenerateAccessToken(Guid userId)
+
+    public AccessToken GenerateAccessToken(Guid userId)
     {
         var now = DateTimeOffset.UtcNow;
         var expiresAt = now.Add(_accessTokenLifetime);
@@ -65,13 +67,15 @@ public sealed class JwtAccessTokenGenerator : ITokenGenerator
         }));
 
         var signature = ComputeSignature($"{header}.{payload}");
-        return ($"{header}.{payload}.{signature}", expiresAt);
+
+        return new AccessToken($"{header}.{payload}.{signature}",
+                                    expiresAt);
     }
 
-    public string GenerateRefreshToken()
+    public RefreshToken GenerateRefreshToken()
     {
         var bytes = RandomNumberGenerator.GetBytes(48);
-        return Base64UrlEncode(bytes);
+        return new RefreshToken(Base64UrlEncode(bytes));
     }
 
     private string ComputeSignature(string value)

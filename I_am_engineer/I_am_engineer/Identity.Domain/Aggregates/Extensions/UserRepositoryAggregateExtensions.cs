@@ -1,11 +1,10 @@
 using I_am_engineer.Identity.Application.Abstractions;
-using I_am_engineer.Identity.Domain.ValueObjects;
 
 namespace I_am_engineer.Identity.Domain.Aggregates.Extensions;
 
 public static class UserRepositoryAggregateExtensions
 {
-    public static async Task<User?> LoadUserAggregateByEmailAsync(
+    public static async Task<User?> RestoreUserAggregateByEmailAsync(
         this IUserRepository userRepository,
         string email,
         CancellationToken cancellationToken)
@@ -15,32 +14,23 @@ public static class UserRepositoryAggregateExtensions
         var userCredentials = await userRepository.GetUserCredentialsByEmailAsync(email, cancellationToken);
         if (userCredentials is null)
         {
-            return null;
+            throw new ArgumentException("Can not restore user. UserCredentials is null.");
         }
 
         var resetToken = await userRepository.GetUserOneTimePasswordResetTokenAsync(userCredentials.UserId, cancellationToken);
 
-        var passwordResetToken = resetToken is null || resetToken.IsUsed
-            ? null
-            : new PasswordResetToken(resetToken.ResetToken);
-
-        var passwordResetTokenExpiresAtUtc = resetToken is null || resetToken.IsUsed
-            ? null
-            : resetToken.ExpiresAt;
-
         return User.Restore(
             id: userCredentials.UserId,
-            email: new Email(userCredentials.Email),
-            passwordHash: new PasswordHash(userCredentials.PasswordHash),
-            isActive: userCredentials.IsActive,
+            email: userCredentials.Email,
+            passwordHash: userCredentials.PasswordHash,
+            passwordResetTokenValue: resetToken?.ResetToken,
+            passwordResetTokenIsUsed: resetToken?.IsUsed,
+            passwordResetTokenExpiresAt: resetToken?.ExpiresAt,
             failedLoginAttempts: userCredentials.CurrentFailedAttempts,
             lockedUntilUtc: userCredentials.LockedUntil,
-            passwordResetToken: passwordResetToken,
-            passwordResetTokenExpiresAtUtc: passwordResetTokenExpiresAtUtc,
+            isActive: userCredentials.IsActive,
             createdAtUtc: userCredentials.CreatedAtUtc,
-            updatedAtUtc: userCredentials.UpdatedAtUtc,
-            lockoutMaxFailedAttempts: userCredentials.MaxFailedAttempts,
-            lockoutDuration: TimeSpan.FromMinutes(userCredentials.LockoutDurationMinutes));
+            updatedAtUtc: userCredentials.UpdatedAtUtc);
     }
 
     public static async Task<bool> SaveUserAggregateAsync(
@@ -52,6 +42,11 @@ public static class UserRepositoryAggregateExtensions
         ArgumentNullException.ThrowIfNull(user);
 
         user.EnsurePasswordIsSet();
+
+        if (!user.IsChanged)
+        {
+            return true;
+        }
 
         var existingUser = await userRepository.GetUserCredentialsByEmailAsync(user.Email.Value, cancellationToken);
         if (existingUser is null)
@@ -79,7 +74,7 @@ public static class UserRepositoryAggregateExtensions
             return false;
         }
 
-        if (user.PasswordResetToken is null || user.PasswordResetTokenExpiresAtUtc is null)
+        if (user.PasswordResetToken is null)
         {
             return await userRepository.ClearUserOneTimePasswordResetTokenAsync(user.Id, cancellationToken);
         }
@@ -87,7 +82,7 @@ public static class UserRepositoryAggregateExtensions
         return await userRepository.SaveUserOneTimePasswordResetTokenAsync(
             user.Id,
             user.PasswordResetToken.Value,
-            user.PasswordResetTokenExpiresAtUtc.Value,
+            user.PasswordResetToken.ExpiresAt,
             cancellationToken);
     }
 }

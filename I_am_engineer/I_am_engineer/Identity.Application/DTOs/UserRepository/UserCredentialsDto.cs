@@ -9,7 +9,5 @@ public sealed record UserCredentialsDto(
     DateTimeOffset UpdatedAtUtc,
     int CurrentFailedAttempts,
     DateTimeOffset? LockedUntil,
-    int MaxFailedAttempts,
-    int LockoutDurationMinutes,
     DateTimeOffset LockoutCreatedAtUtc,
     DateTimeOffset LockoutUpdatedAtUtc);

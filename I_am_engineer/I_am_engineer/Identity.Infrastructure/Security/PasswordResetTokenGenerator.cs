@@ -1,6 +1,6 @@
-using System.Security.Cryptography;
 using I_am_engineer.Identity.Application.Abstractions;
-using Microsoft.Extensions.Configuration;
+using I_am_engineer.Identity.Domain.ValueObjects;
+using System.Security.Cryptography;
 
 namespace I_am_engineer.Identity.Infrastructure.Security;
 
@@ -17,13 +17,13 @@ public sealed class PasswordResetTokenGenerator : IPasswordResetTokenGenerator
         _tokenLifetime = TimeSpan.FromMinutes(lifetimeInMinutes);
     }
 
-    public (string Token, DateTimeOffset ExpiresAt) GenerateToken()
+    public PasswordResetToken GenerateToken()
     {
         var tokenBytes = RandomNumberGenerator.GetBytes(48);
         var token = Base64UrlEncode(tokenBytes);
         var expiresAt = DateTimeOffset.UtcNow.Add(_tokenLifetime);
 
-        return (token, expiresAt);
+        return PasswordResetToken.Create(token, false, expiresAt);
     }
 
     private static string Base64UrlEncode(byte[] data)

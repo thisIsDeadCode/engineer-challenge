@@ -11,20 +11,12 @@ IF OBJECT_ID(N'dbo.UserOneTimePasswordResetTokens', N'U') IS NOT NULL
     DROP TABLE dbo.UserOneTimePasswordResetTokens;
 GO
 
-IF OBJECT_ID(N'dbo.UserLockoutPolicies', N'U') IS NOT NULL
-    DROP TABLE dbo.UserLockoutPolicies;
-GO
-
 IF OBJECT_ID(N'dbo.UserLockouts', N'U') IS NOT NULL
     DROP TABLE dbo.UserLockouts;
 GO
 
 IF OBJECT_ID(N'dbo.UserSessions', N'U') IS NOT NULL
     DROP TABLE dbo.UserSessions;
-GO
-
-IF OBJECT_ID(N'dbo.UserLockoutPolicies', N'U') IS NOT NULL
-    DROP TABLE dbo.UserLockoutPolicies;
 GO
 
 IF OBJECT_ID(N'dbo.Users', N'U') IS NOT NULL
@@ -48,24 +40,9 @@ CREATE TABLE dbo.UserLockouts
     UserId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
     CurrentFailedAttempts INT NOT NULL DEFAULT 0,
     LockedUntil DATETIMEOFFSET NULL,
-    MaxFailedAttempts INT NOT NULL DEFAULT 5,
-    LockoutDurationMinutes INT NOT NULL DEFAULT 15,
     CreatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
     CONSTRAINT FK_UserLockouts_Users FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId)
-);
-GO
-
-CREATE TABLE dbo.UserLockoutPolicies
-(
-    UserId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
-    MaxFailedAttempts INT NOT NULL,
-    LockoutDurationMinutes INT NOT NULL,
-    CreatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
-    UpdatedAt DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT FK_UserLockoutPolicies_Users FOREIGN KEY (UserId) REFERENCES dbo.Users(UserId),
-    CONSTRAINT CK_UserLockoutPolicies_MaxFailedAttempts CHECK (MaxFailedAttempts > 0),
-    CONSTRAINT CK_UserLockoutPolicies_LockoutDurationMinutes CHECK (LockoutDurationMinutes > 0)
 );
 GO
 
@@ -126,8 +103,6 @@ BEGIN
         u.UpdatedAtUtc,
         ul.CurrentFailedAttempts,
         ul.LockedUntil,
-        ul.MaxFailedAttempts,
-        ul.LockoutDurationMinutes,
         ul.CreatedAtUtc AS LockoutCreatedAtUtc,
         ul.UpdatedAtUtc AS LockoutUpdatedAtUtc
     FROM dbo.Users u
