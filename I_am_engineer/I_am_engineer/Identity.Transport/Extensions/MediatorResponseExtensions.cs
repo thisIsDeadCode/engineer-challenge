@@ -9,7 +9,7 @@ public static class MediatorResponseExtensions
     public static ApiResponse<AuthTokensData> ToApiResponse(this AuthTokensResponse response)
     {
         return response.IsSuccess
-            ? ApiResponse<AuthTokensData>.Success(new AuthTokensData(response.AccessToken, response.RefreshToken, response.ExpiresAt))
+            ? ApiResponse<AuthTokensData>.Success(new AuthTokensData(response.AccessToken, response.RefreshToken, response.ExpiresAt, response.RefreshTokenExpiresAt))
             : ApiResponse<AuthTokensData>.Error(null, response.Message ?? string.Empty);
     }
 
@@ -45,7 +45,8 @@ public static class MediatorResponseExtensions
             {
                 AccessToken = response.AccessToken,
                 RefreshToken = response.RefreshToken,
-                ExpiresAt = response.ExpiresAt.ToString("O")
+                ExpiresAt = response.ExpiresAt.ToString("O"),
+                RefreshTokenExpiresAt = response.RefreshTokenExpiresAt.ToString("O")
             }
         };
     }

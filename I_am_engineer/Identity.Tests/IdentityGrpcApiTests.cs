@@ -32,11 +32,13 @@ public sealed class IdentityGrpcApiTests : IClassFixture<TestApplicationFactory>
         var response = await client.CreateUserAsync(new CreateUserRequest
         {
             Email = "test@example.com",
-            Password = "Secret123!"
+            Password = "Secret123!",
+            ConfirmPassword = "Secret123!"
         });
 
         Assert.True(response.IsSuccess);
         Assert.Equal("access-token", response.Data.AccessToken);
+        Assert.False(string.IsNullOrWhiteSpace(response.Data.RefreshTokenExpiresAt));
     }
 
     [Fact]

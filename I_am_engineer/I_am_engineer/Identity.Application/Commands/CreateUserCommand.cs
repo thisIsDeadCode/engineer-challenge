@@ -3,4 +3,4 @@ using MediatR;
 
 namespace I_am_engineer.Identity.Application.Commands;
 
-public sealed record CreateUserCommand(string Email, string Password) : IRequest<AuthTokensResponse>;
+public sealed record CreateUserCommand(string Email, string Password, string ConfirmPassword) : IRequest<AuthTokensResponse>;

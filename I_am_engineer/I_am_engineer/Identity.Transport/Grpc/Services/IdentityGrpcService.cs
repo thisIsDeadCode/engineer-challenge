@@ -10,7 +10,7 @@ public class IdentityGrpcService(ISender sender) : IdentityService.IdentityServi
 {
     public override async Task<ApiResponseAuthTokens> CreateUser(CreateUserRequest request, ServerCallContext context)
     {
-        var response = await sender.Send(new CreateUserCommand(request.Email, request.Password), context.CancellationToken);
+        var response = await sender.Send(new CreateUserCommand(request.Email, request.Password, request.ConfirmPassword), context.CancellationToken);
         return response.ToGrpcApiResponse();
     }
 
