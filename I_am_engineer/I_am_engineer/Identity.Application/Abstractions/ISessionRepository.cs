@@ -4,6 +4,8 @@ namespace I_am_engineer.Identity.Application.Abstractions;
 
 public interface ISessionRepository
 {
+    Task<Session?> GetByIdAsync(Guid sessionId, CancellationToken cancellationToken);
+
     Task<Session?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken);
 
     Task<Session?> GetByEmailAsync(string email, CancellationToken cancellationToken);
