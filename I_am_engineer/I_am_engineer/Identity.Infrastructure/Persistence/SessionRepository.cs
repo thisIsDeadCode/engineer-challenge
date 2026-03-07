@@ -70,8 +70,7 @@ public sealed class SessionRepository(IConfiguration configuration, ISender send
                         AccessToken = session.AccessToken.Value,
                         AccessTokenExpiresAt = session.AccessToken.ExpiresAt,
                         RefreshToken = session.RefreshToken.Value,
-                        RefreshTokenExpiresAt = session.RefreshToken.ExpiresAt,
-                        DeviceId = session.DeviceId
+                        RefreshTokenExpiresAt = session.RefreshToken.ExpiresAt
                     },
                     transaction,
                     cancellationToken);
@@ -114,7 +113,6 @@ public sealed class SessionRepository(IConfiguration configuration, ISender send
             accessTokenExpiresAt: session.AccessTokenExpiresAt,
             refreshToken: session.RefreshToken,
             refreshTokenExpiresAt: session.RefreshTokenExpiresAt,
-            deviceId: session.DeviceId,
             isActive: session.IsActive,
             createdAtUtc: session.CreatedAtUtc,
             updatedAtUtc: session.UpdatedAtUtc);

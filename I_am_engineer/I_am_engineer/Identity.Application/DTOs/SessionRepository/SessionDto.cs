@@ -7,7 +7,6 @@ public sealed record SessionDto(
     DateTimeOffset AccessTokenExpiresAt,
     string RefreshToken,
     DateTimeOffset RefreshTokenExpiresAt,
-    string? DeviceId,
     bool IsActive,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc);

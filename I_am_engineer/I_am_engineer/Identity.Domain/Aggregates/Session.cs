@@ -16,7 +16,6 @@ public sealed class Session : IEventEntity
         DateTimeOffset accessTokenExpiresAt,
         string refreshToken,
         DateTimeOffset refreshTokenExpiresAt,
-        string? deviceId,
         bool isActive,
         DateTimeOffset createdAtUtc,
         DateTimeOffset updatedAtUtc)
@@ -55,7 +54,6 @@ public sealed class Session : IEventEntity
         UserId = userId;
         AccessToken = new AccessToken(accessToken, accessTokenExpiresAt);
         RefreshToken = new RefreshToken(refreshToken, refreshTokenExpiresAt);
-        DeviceId = deviceId;
         IsActive = isActive;
         CreatedAtUtc = createdAtUtc;
         UpdatedAtUtc = updatedAtUtc;
@@ -69,7 +67,6 @@ public sealed class Session : IEventEntity
 
     public RefreshToken RefreshToken { get; private set; }
 
-    public string? DeviceId { get; }
 
     public bool IsActive { get; private set; }
 
@@ -82,7 +79,7 @@ public sealed class Session : IEventEntity
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
 
-    public static Session Create(Guid userId, string? deviceId, ITokenGenerator tokenGenerator)
+    public static Session Create(Guid userId, ITokenGenerator tokenGenerator)
     {
         ArgumentNullException.ThrowIfNull(tokenGenerator);
 
@@ -97,7 +94,6 @@ public sealed class Session : IEventEntity
             accessTokenExpiresAt: accessToken.ExpiresAt,
             refreshToken: refreshToken.Value,
             refreshTokenExpiresAt: refreshToken.ExpiresAt,
-            deviceId: deviceId,
             isActive: true,
             createdAtUtc: now,
             updatedAtUtc: now)
@@ -117,7 +113,6 @@ public sealed class Session : IEventEntity
         DateTimeOffset accessTokenExpiresAt,
         string refreshToken,
         DateTimeOffset refreshTokenExpiresAt,
-        string? deviceId,
         bool isActive,
         DateTimeOffset createdAtUtc,
         DateTimeOffset updatedAtUtc)
@@ -129,7 +124,6 @@ public sealed class Session : IEventEntity
             accessTokenExpiresAt,
             refreshToken,
             refreshTokenExpiresAt,
-            deviceId,
             isActive,
             createdAtUtc,
             updatedAtUtc);

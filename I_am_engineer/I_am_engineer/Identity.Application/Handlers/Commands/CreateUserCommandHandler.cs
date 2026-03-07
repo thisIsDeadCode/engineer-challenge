@@ -35,7 +35,7 @@ public sealed class CreateUserCommandHandler(
             var user = User.CreateNew(request.Email, request.Password, passwordHasher, PasswordPolicy);
 
             SessionPolicy.EnsureCanOpenSession(activeSessionsCount: 0);
-            var session = Session.Create(user.Id, deviceId: null, tokenGenerator);
+            var session = Session.Create(user.Id, tokenGenerator);
 
             var isSaved = await userRegistrationRepository.SaveUserAndSessionAsync(user, session, cancellationToken);
             if (!isSaved)

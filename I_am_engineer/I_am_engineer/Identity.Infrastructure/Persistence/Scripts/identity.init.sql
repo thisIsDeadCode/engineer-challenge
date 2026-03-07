@@ -54,7 +54,6 @@ CREATE TABLE dbo.UserSessions
     AccessTokenExpiresAt DATETIMEOFFSET NOT NULL,
     RefreshToken NVARCHAR(512) NOT NULL UNIQUE,
     RefreshTokenExpiresAt DATETIMEOFFSET NOT NULL,
-    DeviceId NVARCHAR(128) NULL,
     IsActive BIT NOT NULL DEFAULT 1,
     CreatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdatedAtUtc DATETIMEOFFSET NOT NULL DEFAULT SYSUTCDATETIME(),
@@ -177,14 +176,13 @@ CREATE OR ALTER PROCEDURE dbo.usp_Identity_CreateSession
     @AccessToken NVARCHAR(MAX),
     @AccessTokenExpiresAt DATETIMEOFFSET,
     @RefreshToken NVARCHAR(512),
-    @RefreshTokenExpiresAt DATETIMEOFFSET,
-    @DeviceId NVARCHAR(128) = NULL
+    @RefreshTokenExpiresAt DATETIMEOFFSET
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO dbo.UserSessions (SessionId, UserId, AccessToken, AccessTokenExpiresAt, RefreshToken, RefreshTokenExpiresAt, DeviceId)
-    VALUES (@SessionId, @UserId, @AccessToken, @AccessTokenExpiresAt, @RefreshToken, @RefreshTokenExpiresAt, @DeviceId);
+    INSERT INTO dbo.UserSessions (SessionId, UserId, AccessToken, AccessTokenExpiresAt, RefreshToken, RefreshTokenExpiresAt)
+    VALUES (@SessionId, @UserId, @AccessToken, @AccessTokenExpiresAt, @RefreshToken, @RefreshTokenExpiresAt);
 
     SELECT CAST(1 AS BIT) AS Success;
 END;
@@ -204,7 +202,6 @@ BEGIN
         s.AccessTokenExpiresAt,
         s.RefreshToken,
         s.RefreshTokenExpiresAt,
-        s.DeviceId,
         s.IsActive,
         s.CreatedAtUtc,
         s.UpdatedAtUtc
@@ -226,7 +223,6 @@ BEGIN
         s.AccessTokenExpiresAt,
         s.RefreshToken,
         s.RefreshTokenExpiresAt,
-        s.DeviceId,
         s.IsActive,
         s.CreatedAtUtc,
         s.UpdatedAtUtc
@@ -249,7 +245,6 @@ BEGIN
         s.AccessTokenExpiresAt,
         s.RefreshToken,
         s.RefreshTokenExpiresAt,
-        s.DeviceId,
         s.IsActive,
         s.CreatedAtUtc,
         s.UpdatedAtUtc

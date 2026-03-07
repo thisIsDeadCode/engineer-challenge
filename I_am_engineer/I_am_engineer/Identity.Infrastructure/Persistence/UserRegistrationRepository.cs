@@ -100,8 +100,7 @@ public sealed class UserRegistrationRepository(IConfiguration configuration, ISe
                         AccessToken = session.AccessToken.Value,
                         AccessTokenExpiresAt = session.AccessToken.ExpiresAt,
                         RefreshToken = session.RefreshToken.Value,
-                        RefreshTokenExpiresAt = session.RefreshToken.ExpiresAt,
-                        DeviceId = session.DeviceId
+                        RefreshTokenExpiresAt = session.RefreshToken.ExpiresAt
                     },
                     transaction,
                     cancellationToken);
