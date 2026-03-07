@@ -41,8 +41,6 @@ public static class UserRepositoryAggregateExtensions
         ArgumentNullException.ThrowIfNull(userRepository);
         ArgumentNullException.ThrowIfNull(user);
 
-        user.EnsurePasswordIsSet();
-
         if (!user.IsChanged)
         {
             return true;

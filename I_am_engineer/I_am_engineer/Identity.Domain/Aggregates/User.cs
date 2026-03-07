@@ -92,8 +92,6 @@ public sealed class User
 
     public DateTimeOffset UpdatedAtUtc { get; private set; }
 
-
-    public bool IsPasswordSet => PasswordHash is not null;
     public bool IsChanged { get; private set; }
 
 
@@ -127,7 +125,7 @@ public sealed class User
             updatedAtUtc);
     }
 
-    public static User CreateNew(string email)
+    public static User CreateNew(string email, string password, IPasswordHasher passwordHasher)
     {
         var lockoutPolicy = new LockoutPolicy();
         var passwordPolicy = new PasswordPolicy();
@@ -139,6 +137,8 @@ public sealed class User
             passwordPolicy,
             DateTimeOffset.UtcNow);
 
+        user.SetPassword(passwordHasher, password);
+
         user.IsChanged = true;
 
         return user;
@@ -147,7 +147,6 @@ public sealed class User
     public void RecordFailedLoginAttempt()
     {
         ThrowIfInactive();
-        EnsurePasswordIsSet();
 
         var now = DateTimeOffset.UtcNow;
         FailedLoginAttempts++;
@@ -165,7 +164,6 @@ public sealed class User
     {
         ThrowIfInactive();
         ThrowIfLockedOut();
-        EnsurePasswordIsSet();
 
         FailedLoginAttempts = 0;
         LockedUntilUtc = null;
@@ -193,7 +191,6 @@ public sealed class User
     public void IssuePasswordResetToken(IPasswordResetTokenGenerator passwordResetTokenGenerator)
     {
         ThrowIfInactive();
-        EnsurePasswordIsSet();
 
         ArgumentNullException.ThrowIfNull(passwordResetTokenGenerator);
 
@@ -209,18 +206,8 @@ public sealed class User
         IsChanged = true;
     }
 
-    public void EnsurePasswordIsSet()
+    public bool CanConfirmPasswordReset(string providedToken)
     {
-        if (!IsPasswordSet)
-        {
-            throw new UserPasswordIsRequiredException();
-        }
-    }
-
-    public bool CanConfirmPasswordReset(string providedToken, DateTimeOffset now)
-    {
-        EnsurePasswordIsSet();
-
         if (PasswordResetToken is null || !PasswordResetToken.IsActive)
         {
             return false;
