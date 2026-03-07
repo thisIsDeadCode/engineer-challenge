@@ -80,7 +80,7 @@ public sealed class JwtAccessTokenGenerator : ITokenGenerator
 
     public RefreshToken GenerateRefreshToken()
     {
-        var expiresAt = DateTimeOffset.UtcNow.Add(_accessTokenLifetime);
+        var expiresAt = DateTimeOffset.UtcNow.Add(_refreshTokenLifetime);
         var bytes = RandomNumberGenerator.GetBytes(48);
         return new RefreshToken(Base64UrlEncode(bytes), expiresAt);
     }
