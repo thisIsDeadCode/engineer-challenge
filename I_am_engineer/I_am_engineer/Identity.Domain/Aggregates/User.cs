@@ -129,9 +129,9 @@ public sealed class User : IEventEntity
             Email.Create(email),
             DateTimeOffset.UtcNow);
 
-        user.SetPassword(passwordHasher, passwordPolicy, password);
-
         user.AddDomainEvent(new UserRegistered(user.Id));
+
+        user.SetPassword(passwordHasher, passwordPolicy, password);
 
         user.IsChanged = true;
 
