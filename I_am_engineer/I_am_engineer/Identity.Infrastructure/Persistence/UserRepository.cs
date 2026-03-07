@@ -181,6 +181,7 @@ public sealed class UserRepository(IConfiguration configuration) : IUserReposito
             passwordResetTokenValue: resetToken?.ResetToken,
             passwordResetTokenIsUsed: resetToken?.IsUsed,
             passwordResetTokenExpiresAt: resetToken?.ExpiresAt,
+            passwordResetTokenIssuedAt: resetToken?.CreatedAtUtc,
             failedLoginAttempts: credentials.CurrentFailedAttempts,
             lockedUntilUtc: credentials.LockedUntil,
             isActive: credentials.IsActive,
