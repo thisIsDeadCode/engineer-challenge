@@ -1,5 +1,7 @@
 using I_am_engineer.Identity.Application.Abstractions;
 using I_am_engineer.Identity.Domain.Events;
+using I_am_engineer.Identity.Domain.Events.Session;
+using I_am_engineer.Identity.Domain.ValueObjects;
 
 namespace I_am_engineer.Identity.Domain.Aggregates;
 
@@ -39,8 +41,7 @@ public sealed class Session
 
         Id = id;
         UserId = userId;
-        RefreshToken = refreshToken;
-        RefreshTokenExpiresAt = refreshTokenExpiresAt;
+        RefreshToken = new RefreshToken(refreshToken, refreshTokenExpiresAt);
         DeviceId = deviceId;
         IsActive = isActive;
         CreatedAtUtc = createdAtUtc;
@@ -51,9 +52,7 @@ public sealed class Session
 
     public Guid UserId { get; }
 
-    public string RefreshToken { get; private set; }
-
-    public DateTimeOffset RefreshTokenExpiresAt { get; private set; }
+    public RefreshToken RefreshToken { get; private set; }
 
     public string? DeviceId { get; }
 
@@ -67,7 +66,8 @@ public sealed class Session
 
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
-    public static Session Open(Guid userId, string? deviceId, ITokenGenerator tokenGenerator, TimeSpan refreshTokenLifetime)
+
+    public static Session Create(Guid userId, string? deviceId, TimeSpan refreshTokenLifetime, ITokenGenerator tokenGenerator)
     {
         ArgumentNullException.ThrowIfNull(tokenGenerator);
 
@@ -91,7 +91,7 @@ public sealed class Session
             IsChanged = true
         };
 
-        session.AddDomainEvent(new SessionOpened(session.Id, session.UserId, session.RefreshTokenExpiresAt));
+        session.AddDomainEvent(new SessionOpened(session.UserId));
 
         return session;
     }
@@ -117,7 +117,7 @@ public sealed class Session
             updatedAtUtc);
     }
 
-    public void Rotate(ITokenGenerator tokenGenerator, TimeSpan refreshTokenLifetime)
+    public void Rotate(ITokenGenerator tokenGenerator)
     {
         if (!IsActive)
         {
@@ -126,19 +126,13 @@ public sealed class Session
 
         ArgumentNullException.ThrowIfNull(tokenGenerator);
 
-        if (refreshTokenLifetime <= TimeSpan.Zero)
-        {
-            throw new ArgumentException("Refresh token lifetime must be positive.", nameof(refreshTokenLifetime));
-        }
-
         var nextRefreshToken = tokenGenerator.GenerateRefreshToken();
 
-        RefreshToken = nextRefreshToken.Value;
-        RefreshTokenExpiresAt = DateTimeOffset.UtcNow.Add(refreshTokenLifetime);
+        RefreshToken = nextRefreshToken;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
         IsChanged = true;
 
-        AddDomainEvent(new SessionRotated(Id, UserId, RefreshTokenExpiresAt));
+        AddDomainEvent(new SessionRotated(UserId));
     }
 
     public void Revoke()
@@ -152,7 +146,7 @@ public sealed class Session
         UpdatedAtUtc = DateTimeOffset.UtcNow;
         IsChanged = true;
 
-        AddDomainEvent(new SessionRevoked(Id, UserId));
+        AddDomainEvent(new SessionRevoked(UserId));
     }
 
     public void ClearDomainEvents()

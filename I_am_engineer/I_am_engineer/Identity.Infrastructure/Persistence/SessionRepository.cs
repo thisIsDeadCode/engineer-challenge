@@ -68,7 +68,7 @@ public sealed class SessionRepository(IConfiguration configuration) : ISessionRe
                         SessionId = session.Id,
                         UserId = session.UserId,
                         RefreshToken = session.RefreshToken,
-                        RefreshTokenExpiresAt = session.RefreshTokenExpiresAt,
+                        RefreshTokenExpiresAt = session.RefreshToken.ExpiresAt,
                         DeviceId = session.DeviceId
                     },
                     commandType: CommandType.StoredProcedure,
@@ -84,7 +84,7 @@ public sealed class SessionRepository(IConfiguration configuration) : ISessionRe
                 {
                     SessionId = session.Id,
                     RefreshToken = session.RefreshToken,
-                    RefreshTokenExpiresAt = session.RefreshTokenExpiresAt,
+                    RefreshTokenExpiresAt = session.RefreshToken.ExpiresAt,
                     IsActive = session.IsActive
                 },
                 commandType: CommandType.StoredProcedure,

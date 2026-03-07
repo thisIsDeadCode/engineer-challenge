@@ -4,7 +4,6 @@ using System.Text.Json;
 using I_am_engineer.Identity.Application.Abstractions;
 using I_am_engineer.Identity.Domain.ValueObjects;
 using I_am_engineer.Identity.Infrastructure.Exceptions.JwtAccessTokenGenerator;
-using Microsoft.Extensions.Configuration;
 
 namespace I_am_engineer.Identity.Infrastructure.Security;
 
@@ -14,6 +13,7 @@ public sealed class JwtAccessTokenGenerator : ITokenGenerator
     private readonly string _issuer;
     private readonly string _audience;
     private readonly TimeSpan _accessTokenLifetime;
+    private readonly TimeSpan _refreshTokenLifetime;
 
     public JwtAccessTokenGenerator(IConfiguration configuration)
     {
@@ -39,10 +39,16 @@ public sealed class JwtAccessTokenGenerator : ITokenGenerator
         _issuer = issuer;
         _audience = audience;
 
-        var lifetimeInMinutes = int.TryParse(configuration["Auth:Jwt:AccessTokenLifetimeMinutes"], out var configured)
-            ? configured
-            : 15;
-        _accessTokenLifetime = TimeSpan.FromMinutes(lifetimeInMinutes);
+        var accessTokenLifetimeInMinutes = int.TryParse(configuration["Auth:Jwt:AccessTokenLifetimeMinutes"], out var configuredAccessTokenLifetimeInMinutes)
+            ? configuredAccessTokenLifetimeInMinutes
+            : 1440;
+
+        var refreshTokenLifetimeInMinutes = int.TryParse(configuration["Auth:Jwt:RefreshTokenLifetimeMinutes"], out var configuredRefreshTokenLifetimeInMinutes)
+            ? configuredRefreshTokenLifetimeInMinutes
+            : 2880;
+
+        _accessTokenLifetime = TimeSpan.FromMinutes(accessTokenLifetimeInMinutes);
+        _refreshTokenLifetime = TimeSpan.FromMinutes(refreshTokenLifetimeInMinutes);
     }
 
 
@@ -74,8 +80,9 @@ public sealed class JwtAccessTokenGenerator : ITokenGenerator
 
     public RefreshToken GenerateRefreshToken()
     {
+        var expiresAt = DateTimeOffset.UtcNow.Add(_accessTokenLifetime);
         var bytes = RandomNumberGenerator.GetBytes(48);
-        return new RefreshToken(Base64UrlEncode(bytes));
+        return new RefreshToken(Base64UrlEncode(bytes), expiresAt);
     }
 
     private string ComputeSignature(string value)

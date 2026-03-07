@@ -1,6 +1,7 @@
 using I_am_engineer.Identity.Application.Abstractions;
-using I_am_engineer.Identity.Domain.Events;
 using I_am_engineer.Identity.Domain.DomainServices;
+using I_am_engineer.Identity.Domain.Events;
+using I_am_engineer.Identity.Domain.Events.User;
 using I_am_engineer.Identity.Domain.Exceptions.User;
 using I_am_engineer.Identity.Domain.ValueObjects;
 
@@ -15,8 +16,6 @@ public sealed class User
         Email email,
         PasswordHash? passwordHash,
         Session? session,
-        LockoutPolicy lockoutPolicy,
-        PasswordPolicy passwordPolicy,
         bool isActive,
         int failedLoginAttempts,
         DateTimeOffset? lockedUntilUtc,
@@ -43,8 +42,6 @@ public sealed class User
         Email = email;
         PasswordHash = passwordHash;
         Session = session;
-        LockoutPolicy = lockoutPolicy ?? throw new ArgumentNullException(nameof(lockoutPolicy));
-        PasswordPolicy = passwordPolicy ?? throw new ArgumentNullException(nameof(passwordPolicy));
         IsActive = isActive;
         FailedLoginAttempts = failedLoginAttempts;
         LockedUntilUtc = lockedUntilUtc;
@@ -57,16 +54,12 @@ public sealed class User
     private User(
         Guid id,
         Email email,
-        LockoutPolicy lockoutPolicy,
-        PasswordPolicy passwordPolicy,
         DateTimeOffset now)
         : this(
             id,
             email,
             passwordHash: null,
             session: null,
-            lockoutPolicy,
-            passwordPolicy,
             isActive: true,
             failedLoginAttempts: 0,
             lockedUntilUtc: null,
@@ -92,10 +85,6 @@ public sealed class User
 
     public bool IsActive { get; private set; }
 
-    public LockoutPolicy LockoutPolicy { get; }
-
-    public PasswordPolicy PasswordPolicy { get; }
-
     public DateTimeOffset CreatedAtUtc { get; }
 
     public DateTimeOffset UpdatedAtUtc { get; private set; }
@@ -119,16 +108,11 @@ public sealed class User
         DateTimeOffset createdAtUtc,
         DateTimeOffset updatedAtUtc)
     {
-        var lockoutPolicy = new LockoutPolicy();
-        var passwordPolicy = new PasswordPolicy();
-
         return new User(
             id,
             Email.Create(email),
             new PasswordHash(passwordHash),
             session,
-            lockoutPolicy,
-            passwordPolicy,
             isActive,
             failedLoginAttempts,
             lockedUntilUtc,
@@ -137,48 +121,43 @@ public sealed class User
             updatedAtUtc);
     }
 
-    public static User CreateNew(string email, string password, IPasswordHasher passwordHasher)
+    public static User CreateNew(string email, string password, IPasswordHasher passwordHasher, PasswordPolicy passwordPolicy)
     {
-        var lockoutPolicy = new LockoutPolicy();
-        var passwordPolicy = new PasswordPolicy();
-
         var user = new User(
             Guid.NewGuid(),
             Email.Create(email),
-            lockoutPolicy,
-            passwordPolicy,
             DateTimeOffset.UtcNow);
 
-        user.SetPassword(passwordHasher, password);
+        user.SetPassword(passwordHasher, passwordPolicy, password);
 
-        user.AddDomainEvent(new UserRegistered(user.Id, user.Email.Value));
+        user.AddDomainEvent(new UserRegistered(user.Id));
 
         user.IsChanged = true;
 
         return user;
     }
 
-    public void RecordFailedLoginAttempt()
+    public void RecordFailedLoginAttempt(LockoutPolicy lockoutPolicy)
     {
         ThrowIfInactive();
 
         var now = DateTimeOffset.UtcNow;
         FailedLoginAttempts++;
 
-        if (LockoutPolicy.ShouldLockout(FailedLoginAttempts))
+        if (lockoutPolicy.ShouldLockout(FailedLoginAttempts))
         {
-            LockedUntilUtc = LockoutPolicy.CalculateLockoutEnd(now);
-            AddDomainEvent(new UserLockedOut(Id, LockedUntilUtc));
+            LockedUntilUtc = lockoutPolicy.CalculateLockoutEnd(now);
+            AddDomainEvent(new UserLockedOut(Id));
         }
 
         UpdatedAtUtc = now;
         IsChanged = true;
     }
 
-    public void RecordSuccessfulLogin()
+    public void RecordSuccessfulLogin(LockoutPolicy lockoutPolicy)
     {
         ThrowIfInactive();
-        ThrowIfLockedOut();
+        ThrowIfLockedOut(lockoutPolicy);
 
         FailedLoginAttempts = 0;
         LockedUntilUtc = null;
@@ -186,13 +165,13 @@ public sealed class User
         IsChanged = true;
     }
 
-    public void SetPassword(IPasswordHasher passwordHasher, string newPassword)
+    public void SetPassword(IPasswordHasher passwordHasher, PasswordPolicy passwordPolicy, string newPassword)
     {
         ThrowIfInactive();
 
         ArgumentNullException.ThrowIfNull(passwordHasher);
 
-        PasswordPolicy.EnsureCompliant(newPassword);
+        passwordPolicy.EnsureCompliant(newPassword);
 
         PasswordHash = passwordHasher.Hash(newPassword);
 
@@ -213,7 +192,7 @@ public sealed class User
         PasswordResetToken = passwordResetTokenGenerator.GenerateToken();
         UpdatedAtUtc = DateTimeOffset.UtcNow;
         IsChanged = true;
-        AddDomainEvent(new PasswordResetRequested(Id, PasswordResetToken.Value, PasswordResetToken.ExpiresAt));
+        AddDomainEvent(new PasswordResetRequested(Id));
     }
 
     public void MarkPasswordResetTokenAsUsed(string providedToken)
@@ -232,6 +211,7 @@ public sealed class User
 
         UpdatedAtUtc = DateTimeOffset.UtcNow;
         IsChanged = true;
+        AddDomainEvent(new PasswordResetRequested(Id));
     }
 
     public void ClearDomainEvents()
@@ -244,7 +224,9 @@ public sealed class User
         IsActive = false;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
         IsChanged = true;
+        AddDomainEvent(new UserDeactivated(Id));
     }
+
 
     public bool CanConfirmPasswordReset(string providedToken)
     {
@@ -256,9 +238,9 @@ public sealed class User
         return PasswordResetToken.Value == providedToken;
     }
 
-    public bool IsLockedOut()
+    public bool IsLockedOut(LockoutPolicy lockoutPolicy)
     {
-        return LockoutPolicy.IsLockedOut(LockedUntilUtc, DateTimeOffset.UtcNow);
+        return lockoutPolicy.IsLockedOut(LockedUntilUtc, DateTimeOffset.UtcNow);
     }
 
     private void ThrowIfInactive()
@@ -269,9 +251,9 @@ public sealed class User
         }
     }
 
-    private void ThrowIfLockedOut()
+    private void ThrowIfLockedOut(LockoutPolicy lockoutPolicy)
     {
-        if (IsLockedOut())
+        if (IsLockedOut(lockoutPolicy))
         {
             throw new UserIsLockedOutException();
         }
