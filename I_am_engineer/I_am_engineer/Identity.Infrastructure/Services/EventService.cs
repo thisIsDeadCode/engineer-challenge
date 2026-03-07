@@ -1,6 +1,6 @@
 using I_am_engineer.Identity.Domain.Events;
 
-namespace I_am_engineer.Identity.Domain.DomainServices;
+namespace I_am_engineer.Identity.Infrastructure.Services;
 
 public sealed class EventService
 {
@@ -20,7 +20,7 @@ public sealed class EventService
         {
             Console.WriteLine(
                 "Domain event delivered: {0}; userId: {1}; occurredAtUtc: {2:O}",
-                domainEvent.GetType().Name,
+                domainEvent.Name,
                 domainEvent.UserId,
                 domainEvent.OccurredAtUtc);
         }

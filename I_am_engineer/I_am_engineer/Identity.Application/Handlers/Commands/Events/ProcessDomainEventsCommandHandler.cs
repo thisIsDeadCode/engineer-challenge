@@ -1,5 +1,5 @@
 using I_am_engineer.Identity.Application.Commands.Events;
-using I_am_engineer.Identity.Domain.DomainServices;
+using I_am_engineer.Identity.Infrastructure.Services;
 using MediatR;
 
 namespace I_am_engineer.Identity.Application.Handlers.Commands.Events;
