@@ -87,6 +87,8 @@ BEGIN
 
     INSERT INTO dbo.UserLockouts (UserId)
     VALUES (@UserId);
+
+    SELECT CAST(1 AS BIT) AS Success;
 END;
 GO
 
@@ -146,17 +148,26 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    DECLARE @UsersUpdated INT = 0;
+    DECLARE @LockoutsUpdated INT = 0;
+
     UPDATE dbo.Users
     SET PasswordHash = @PasswordHash,
         IsActive = @IsActive,
         UpdatedAtUtc = SYSUTCDATETIME()
     WHERE UserId = @UserId;
 
+    SET @UsersUpdated = @@ROWCOUNT;
+
     UPDATE dbo.UserLockouts
     SET CurrentFailedAttempts = @CurrentFailedAttempts,
         LockedUntil = @LockedUntil,
         UpdatedAtUtc = SYSUTCDATETIME()
     WHERE UserId = @UserId;
+
+    SET @LockoutsUpdated = @@ROWCOUNT;
+
+    SELECT CAST(CASE WHEN @UsersUpdated = 1 AND @LockoutsUpdated = 1 THEN 1 ELSE 0 END AS BIT) AS Success;
 END;
 GO
 
@@ -174,6 +185,8 @@ BEGIN
 
     INSERT INTO dbo.UserSessions (SessionId, UserId, AccessToken, AccessTokenExpiresAt, RefreshToken, RefreshTokenExpiresAt, DeviceId)
     VALUES (@SessionId, @UserId, @AccessToken, @AccessTokenExpiresAt, @RefreshToken, @RefreshTokenExpiresAt, @DeviceId);
+
+    SELECT CAST(1 AS BIT) AS Success;
 END;
 GO
 
@@ -266,6 +279,8 @@ BEGIN
         IsActive = @IsActive,
         UpdatedAtUtc = SYSUTCDATETIME()
     WHERE SessionId = @SessionId;
+
+    SELECT CAST(CASE WHEN @@ROWCOUNT = 1 THEN 1 ELSE 0 END AS BIT) AS Success;
 END;
 GO
 
@@ -320,6 +335,8 @@ BEGIN
         UpdatedAtUtc = SYSUTCDATETIME()
     WHERE SessionId = @SessionId
       AND IsActive = 1;
+
+    SELECT CAST(CASE WHEN @@ROWCOUNT = 1 THEN 1 ELSE 0 END AS BIT) AS Success;
 END;
 GO
 
@@ -358,12 +375,15 @@ BEGIN
             IsUsed = @IsUsed,
             UpdatedAtUtc = SYSUTCDATETIME()
         WHERE UserId = @UserId;
+
+        SELECT CAST(CASE WHEN @@ROWCOUNT = 1 THEN 1 ELSE 0 END AS BIT) AS Success;
+        RETURN;
     END
-    ELSE
-    BEGIN
-        INSERT INTO dbo.UserOneTimePasswordResetTokens (UserId, ResetToken, ExpiresAt, IsUsed)
-        VALUES (@UserId, @ResetToken, @ExpiresAt, @IsUsed);
-    END
+
+    INSERT INTO dbo.UserOneTimePasswordResetTokens (UserId, ResetToken, ExpiresAt, IsUsed)
+    VALUES (@UserId, @ResetToken, @ExpiresAt, @IsUsed);
+
+    SELECT CAST(1 AS BIT) AS Success;
 END;
 GO
 
@@ -375,6 +395,8 @@ BEGIN
 
     DELETE FROM dbo.UserOneTimePasswordResetTokens
     WHERE UserId = @UserId;
+
+    SELECT CAST(1 AS BIT) AS Success;
 END;
 GO
 
@@ -394,12 +416,28 @@ BEGIN
       AND u.IsActive = 1;
 
     IF @UserId IS NULL
+    BEGIN
+        SELECT CAST(0 AS BIT) AS Success;
         RETURN;
+    END
 
-    EXEC dbo.usp_Identity_SaveUserOneTimePasswordResetToken
-        @UserId = @UserId,
-        @ResetToken = @ResetToken,
-        @ExpiresAt = @ExpiresAt;
+    IF EXISTS (SELECT 1 FROM dbo.UserOneTimePasswordResetTokens WHERE UserId = @UserId)
+    BEGIN
+        UPDATE dbo.UserOneTimePasswordResetTokens
+        SET ResetToken = @ResetToken,
+            ExpiresAt = @ExpiresAt,
+            IsUsed = 0,
+            UpdatedAtUtc = SYSUTCDATETIME()
+        WHERE UserId = @UserId;
+
+        SELECT CAST(CASE WHEN @@ROWCOUNT = 1 THEN 1 ELSE 0 END AS BIT) AS Success;
+        RETURN;
+    END
+
+    INSERT INTO dbo.UserOneTimePasswordResetTokens (UserId, ResetToken, ExpiresAt, IsUsed)
+    VALUES (@UserId, @ResetToken, @ExpiresAt, 0);
+
+    SELECT CAST(1 AS BIT) AS Success;
 END;
 GO
 
@@ -427,6 +465,8 @@ BEGIN
     SET NOCOUNT ON;
 
     DECLARE @UserId UNIQUEIDENTIFIER;
+    DECLARE @UsersUpdated INT = 0;
+    DECLARE @TokensUpdated INT = 0;
 
     SELECT TOP (1) @UserId = pr.UserId
     FROM dbo.UserOneTimePasswordResetTokens pr
@@ -435,17 +475,26 @@ BEGIN
       AND pr.ExpiresAt > SYSUTCDATETIME();
 
     IF @UserId IS NULL
+    BEGIN
+        SELECT CAST(0 AS BIT) AS Success;
         RETURN;
+    END
 
     UPDATE dbo.Users
     SET PasswordHash = @NewPasswordHash,
         UpdatedAtUtc = SYSUTCDATETIME()
     WHERE UserId = @UserId;
 
+    SET @UsersUpdated = @@ROWCOUNT;
+
     UPDATE dbo.UserOneTimePasswordResetTokens
     SET IsUsed = 1,
         UpdatedAtUtc = SYSUTCDATETIME()
     WHERE ResetToken = @ResetToken;
+
+    SET @TokensUpdated = @@ROWCOUNT;
+
+    SELECT CAST(CASE WHEN @UsersUpdated = 1 AND @TokensUpdated = 1 THEN 1 ELSE 0 END AS BIT) AS Success;
 END;
 GO
 

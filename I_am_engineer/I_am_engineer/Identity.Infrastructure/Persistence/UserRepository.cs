@@ -10,11 +10,9 @@ using Microsoft.Extensions.Configuration;
 
 namespace I_am_engineer.Identity.Infrastructure.Persistence;
 
-public sealed class UserRepository(IConfiguration configuration, ISender sender) : IUserRepository
+public sealed class UserRepository(IConfiguration configuration, ISender sender)
+    : SqlRepository(configuration), IUserRepository
 {
-    private readonly string _connectionString = configuration.GetConnectionString("IdentityDb")
-        ?? throw new InvalidOperationException("Connection string 'IdentityDb' is not configured.");
-
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken)
     {
         return await ExecuteReadAsync(async connection =>
@@ -85,22 +83,18 @@ public sealed class UserRepository(IConfiguration configuration, ISender sender)
 
             if (existingUser is null)
             {
-                var created = await connection.ExecuteAsync(new CommandDefinition(
-                    commandText: "dbo.usp_Identity_CreateUser",
-                    parameters: new { UserId = user.Id, Email = user.Email.Value, PasswordHash = user.PasswordHash!.Value },
-                    commandType: CommandType.StoredProcedure,
-                    transaction: transaction,
-                    cancellationToken: cancellationToken));
-
-                if (created <= 0)
-                {
-                    return false;
-                }
+                await EnsureProcedureSucceededAsync(
+                    connection,
+                    "dbo.usp_Identity_CreateUser",
+                    new { UserId = user.Id, Email = user.Email.Value, PasswordHash = user.PasswordHash!.Value },
+                    transaction,
+                    cancellationToken);
             }
 
-            var updated = await connection.ExecuteAsync(new CommandDefinition(
-                commandText: "dbo.usp_Identity_UpdateUserAggregateState",
-                parameters: new
+            await EnsureProcedureSucceededAsync(
+                connection,
+                "dbo.usp_Identity_UpdateUserAggregateState",
+                new
                 {
                     UserId = user.Id,
                     PasswordHash = user.PasswordHash!.Value,
@@ -108,41 +102,35 @@ public sealed class UserRepository(IConfiguration configuration, ISender sender)
                     LockedUntil = user.LockedUntilUtc,
                     IsActive = user.IsActive
                 },
-                commandType: CommandType.StoredProcedure,
-                transaction: transaction,
-                cancellationToken: cancellationToken));
-
-            if (updated <= 0)
-            {
-                return false;
-            }
+                transaction,
+                cancellationToken);
 
             if (user.PasswordResetToken is null)
             {
-                await connection.ExecuteAsync(new CommandDefinition(
-                    commandText: "dbo.usp_Identity_ClearUserOneTimePasswordResetToken",
-                    parameters: new { UserId = user.Id },
-                    commandType: CommandType.StoredProcedure,
-                    transaction: transaction,
-                    cancellationToken: cancellationToken));
+                await EnsureProcedureSucceededAsync(
+                    connection,
+                    "dbo.usp_Identity_ClearUserOneTimePasswordResetToken",
+                    new { UserId = user.Id },
+                    transaction,
+                    cancellationToken);
 
                 return true;
             }
 
-            var tokenAffected = await connection.ExecuteAsync(new CommandDefinition(
-                commandText: "dbo.usp_Identity_SaveUserOneTimePasswordResetToken",
-                parameters: new
+            await EnsureProcedureSucceededAsync(
+                connection,
+                "dbo.usp_Identity_SaveUserOneTimePasswordResetToken",
+                new
                 {
                     UserId = user.Id,
                     ResetToken = user.PasswordResetToken.Value,
                     ExpiresAt = user.PasswordResetToken.ExpiresAt,
                     IsUsed = user.PasswordResetToken.IsUsed
                 },
-                commandType: CommandType.StoredProcedure,
-                transaction: transaction,
-                cancellationToken: cancellationToken));
+                transaction,
+                cancellationToken);
 
-            return tokenAffected >= 0;
+            return true;
         }, cancellationToken);
 
         if (isSaved)
@@ -151,34 +139,6 @@ public sealed class UserRepository(IConfiguration configuration, ISender sender)
         }
 
         return isSaved;
-    }
-
-    private async Task<T> ExecuteReadAsync<T>(Func<SqlConnection, Task<T>> action, CancellationToken cancellationToken)
-    {
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken);
-
-        return await action(connection);
-    }
-
-    private async Task<T> ExecuteInTransactionAsync<T>(Func<SqlConnection, SqlTransaction, Task<T>> action, CancellationToken cancellationToken)
-    {
-        await using var connection = new SqlConnection(_connectionString);
-        await connection.OpenAsync(cancellationToken);
-        await using var transaction = await connection.BeginTransactionAsync(cancellationToken) as SqlTransaction
-            ?? throw new InvalidOperationException("Failed to start SQL transaction.");
-
-        try
-        {
-            var result = await action(connection, transaction);
-            await transaction.CommitAsync(cancellationToken);
-            return result;
-        }
-        catch
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
-        }
     }
 
     private static User RestoreAggregate(UserCredentialsDto credentials, UserOneTimePasswordResetTokenDto? resetToken)
