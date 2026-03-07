@@ -50,7 +50,6 @@ public sealed class IdentityGrpcApiTests : IClassFixture<TestApplicationFactory>
         {
             Email = "test@example.com",
             Password = "Secret123!",
-            DeviceId = "device-1"
         });
 
         Assert.True(response.IsSuccess);

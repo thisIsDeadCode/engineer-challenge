@@ -21,7 +21,7 @@ public class IdentityController(ISender sender) : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
-        var response = await sender.Send(new LoginCommand(request.Email, request.Password, request.DeviceId), cancellationToken);
+        var response = await sender.Send(new LoginCommand(request.Email, request.Password), cancellationToken);
         return Ok(response.ToApiResponse());
     }
 
