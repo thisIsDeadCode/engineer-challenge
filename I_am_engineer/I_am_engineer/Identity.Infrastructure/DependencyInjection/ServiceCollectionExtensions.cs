@@ -11,6 +11,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddIdentityInfrastructure(this IServiceCollection services)
     {
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
         services.AddSingleton<ITokenGenerator, JwtAccessTokenGenerator>();
         services.AddSingleton<IPasswordResetTokenGenerator, PasswordResetTokenGenerator>();
