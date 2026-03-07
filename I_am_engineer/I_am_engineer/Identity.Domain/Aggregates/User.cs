@@ -211,7 +211,7 @@ public sealed class User
 
         UpdatedAtUtc = DateTimeOffset.UtcNow;
         IsChanged = true;
-        AddDomainEvent(new PasswordResetRequested(Id));
+        AddDomainEvent(new PasswordResetTokenUsed(Id));
     }
 
     public void ClearDomainEvents()
