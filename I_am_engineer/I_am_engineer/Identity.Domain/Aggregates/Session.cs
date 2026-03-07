@@ -12,6 +12,8 @@ public sealed class Session : IEventEntity
     private Session(
         Guid id,
         Guid userId,
+        string accessToken,
+        DateTimeOffset accessTokenExpiresAt,
         string refreshToken,
         DateTimeOffset refreshTokenExpiresAt,
         string? deviceId,
@@ -29,6 +31,16 @@ public sealed class Session : IEventEntity
             throw new ArgumentException("User id is required.", nameof(userId));
         }
 
+        if (string.IsNullOrWhiteSpace(accessToken))
+        {
+            throw new ArgumentException("Access token is required.", nameof(accessToken));
+        }
+
+        if (accessTokenExpiresAt <= createdAtUtc)
+        {
+            throw new ArgumentException("Access token expiration must be greater than creation date.", nameof(accessTokenExpiresAt));
+        }
+
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
             throw new ArgumentException("Refresh token is required.", nameof(refreshToken));
@@ -41,6 +53,7 @@ public sealed class Session : IEventEntity
 
         Id = id;
         UserId = userId;
+        AccessToken = new AccessToken(accessToken, accessTokenExpiresAt);
         RefreshToken = new RefreshToken(refreshToken, refreshTokenExpiresAt);
         DeviceId = deviceId;
         IsActive = isActive;
@@ -51,6 +64,8 @@ public sealed class Session : IEventEntity
     public Guid Id { get; }
 
     public Guid UserId { get; }
+
+    public AccessToken AccessToken { get; private set; }
 
     public RefreshToken RefreshToken { get; private set; }
 
@@ -77,10 +92,14 @@ public sealed class Session : IEventEntity
         }
 
         var now = DateTimeOffset.UtcNow;
+        var accessToken = tokenGenerator.GenerateAccessToken(userId);
         var refreshToken = tokenGenerator.GenerateRefreshToken();
+
         var session = new Session(
             id: Guid.NewGuid(),
             userId: userId,
+            accessToken: accessToken.Value,
+            accessTokenExpiresAt: accessToken.ExpiresAt,
             refreshToken: refreshToken.Value,
             refreshTokenExpiresAt: now.Add(refreshTokenLifetime),
             deviceId: deviceId,
@@ -91,7 +110,7 @@ public sealed class Session : IEventEntity
             IsChanged = true
         };
 
-        session.AddDomainEvent(new SessionOpened(session.UserId));
+        session.AddDomainEvent(new SessionCreated(session.UserId));
 
         return session;
     }
@@ -99,6 +118,8 @@ public sealed class Session : IEventEntity
     public static Session Restore(
         Guid id,
         Guid userId,
+        string accessToken,
+        DateTimeOffset accessTokenExpiresAt,
         string refreshToken,
         DateTimeOffset refreshTokenExpiresAt,
         string? deviceId,
@@ -109,6 +130,8 @@ public sealed class Session : IEventEntity
         return new Session(
             id,
             userId,
+            accessToken,
+            accessTokenExpiresAt,
             refreshToken,
             refreshTokenExpiresAt,
             deviceId,
@@ -126,8 +149,10 @@ public sealed class Session : IEventEntity
 
         ArgumentNullException.ThrowIfNull(tokenGenerator);
 
+        var nextAccessToken = tokenGenerator.GenerateAccessToken(UserId);
         var nextRefreshToken = tokenGenerator.GenerateRefreshToken();
 
+        AccessToken = nextAccessToken;
         RefreshToken = nextRefreshToken;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
         IsChanged = true;

@@ -14,7 +14,7 @@ public class IdentityController(ISender sender) : ControllerBase
     [HttpPost("create-user")]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
     {
-        var response = await sender.Send(new CreateUserCommand(request.Email, request.Password), cancellationToken);
+        var response = await sender.Send(new CreateUserCommand(request.Email, request.Password, request.ConfirmPassword), cancellationToken);
         return Ok(response.ToApiResponse());
     }
 

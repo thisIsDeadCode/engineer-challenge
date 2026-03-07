@@ -50,6 +50,8 @@ CREATE TABLE dbo.UserSessions
 (
     SessionId UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
     UserId UNIQUEIDENTIFIER NOT NULL,
+    AccessToken NVARCHAR(MAX) NOT NULL,
+    AccessTokenExpiresAt DATETIMEOFFSET NOT NULL,
     RefreshToken NVARCHAR(512) NOT NULL UNIQUE,
     RefreshTokenExpiresAt DATETIMEOFFSET NOT NULL,
     DeviceId NVARCHAR(128) NULL,
@@ -161,6 +163,8 @@ GO
 CREATE OR ALTER PROCEDURE dbo.usp_Identity_CreateSession
     @SessionId UNIQUEIDENTIFIER,
     @UserId UNIQUEIDENTIFIER,
+    @AccessToken NVARCHAR(MAX),
+    @AccessTokenExpiresAt DATETIMEOFFSET,
     @RefreshToken NVARCHAR(512),
     @RefreshTokenExpiresAt DATETIMEOFFSET,
     @DeviceId NVARCHAR(128) = NULL
@@ -168,8 +172,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    INSERT INTO dbo.UserSessions (SessionId, UserId, RefreshToken, RefreshTokenExpiresAt, DeviceId)
-    VALUES (@SessionId, @UserId, @RefreshToken, @RefreshTokenExpiresAt, @DeviceId);
+    INSERT INTO dbo.UserSessions (SessionId, UserId, AccessToken, AccessTokenExpiresAt, RefreshToken, RefreshTokenExpiresAt, DeviceId)
+    VALUES (@SessionId, @UserId, @AccessToken, @AccessTokenExpiresAt, @RefreshToken, @RefreshTokenExpiresAt, @DeviceId);
 END;
 GO
 
@@ -183,6 +187,8 @@ BEGIN
     SELECT TOP (1)
         s.SessionId,
         s.UserId,
+        s.AccessToken,
+        s.AccessTokenExpiresAt,
         s.RefreshToken,
         s.RefreshTokenExpiresAt,
         s.DeviceId,
@@ -203,6 +209,8 @@ BEGIN
     SELECT TOP (1)
         s.SessionId,
         s.UserId,
+        s.AccessToken,
+        s.AccessTokenExpiresAt,
         s.RefreshToken,
         s.RefreshTokenExpiresAt,
         s.DeviceId,
@@ -224,6 +232,8 @@ BEGIN
     SELECT TOP (1)
         s.SessionId,
         s.UserId,
+        s.AccessToken,
+        s.AccessTokenExpiresAt,
         s.RefreshToken,
         s.RefreshTokenExpiresAt,
         s.DeviceId,
@@ -239,6 +249,8 @@ GO
 
 CREATE OR ALTER PROCEDURE dbo.usp_Identity_UpdateSessionAggregateState
     @SessionId UNIQUEIDENTIFIER,
+    @AccessToken NVARCHAR(MAX),
+    @AccessTokenExpiresAt DATETIMEOFFSET,
     @RefreshToken NVARCHAR(512),
     @RefreshTokenExpiresAt DATETIMEOFFSET,
     @IsActive BIT
@@ -247,7 +259,9 @@ BEGIN
     SET NOCOUNT ON;
 
     UPDATE dbo.UserSessions
-    SET RefreshToken = @RefreshToken,
+    SET AccessToken = @AccessToken,
+        AccessTokenExpiresAt = @AccessTokenExpiresAt,
+        RefreshToken = @RefreshToken,
         RefreshTokenExpiresAt = @RefreshTokenExpiresAt,
         IsActive = @IsActive,
         UpdatedAtUtc = SYSUTCDATETIME()
@@ -286,6 +300,8 @@ BEGIN
     SELECT
         SessionId,
         UserId,
+        AccessToken,
+        AccessTokenExpiresAt,
         RefreshToken,
         RefreshTokenExpiresAt
     FROM dbo.UserSessions

@@ -17,6 +17,7 @@ service IdentityService {
 message CreateUserRequest {
   string email = 1;
   string password = 2;
+  string confirm_password = 3;
 }
 
 message LoginRequest {
@@ -66,6 +67,7 @@ message AuthTokensData {
   string access_token = 1;
   string refresh_token = 2;
   string expires_at = 3;
+  string refresh_token_expires_at = 4;
 }
 
 message MyProfileData {

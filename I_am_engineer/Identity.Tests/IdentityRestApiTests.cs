@@ -21,7 +21,8 @@ public sealed class IdentityRestApiTests : IClassFixture<TestApplicationFactory>
         var response = await client.PostAsJsonAsync("/api/v1/identity/create-user", new
         {
             email = "test@example.com",
-            password = "Secret123!"
+            password = "Secret123!",
+            confirmPassword = "Secret123!"
         });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -29,6 +30,7 @@ public sealed class IdentityRestApiTests : IClassFixture<TestApplicationFactory>
         Assert.NotNull(payload);
         Assert.True(payload.IsSuccess);
         Assert.Equal("access-token", payload.Data?.AccessToken);
+        Assert.NotEqual(default, payload.Data?.RefreshTokenExpiresAt);
     }
 
     [Fact]

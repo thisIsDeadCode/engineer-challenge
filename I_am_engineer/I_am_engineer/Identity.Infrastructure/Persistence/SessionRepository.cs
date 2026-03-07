@@ -69,7 +69,9 @@ public sealed class SessionRepository(IConfiguration configuration, ISender send
                     {
                         SessionId = session.Id,
                         UserId = session.UserId,
-                        RefreshToken = session.RefreshToken,
+                        AccessToken = session.AccessToken.Value,
+                        AccessTokenExpiresAt = session.AccessToken.ExpiresAt,
+                        RefreshToken = session.RefreshToken.Value,
                         RefreshTokenExpiresAt = session.RefreshToken.ExpiresAt,
                         DeviceId = session.DeviceId
                     },
@@ -85,7 +87,9 @@ public sealed class SessionRepository(IConfiguration configuration, ISender send
                 parameters: new
                 {
                     SessionId = session.Id,
-                    RefreshToken = session.RefreshToken,
+                    AccessToken = session.AccessToken.Value,
+                    AccessTokenExpiresAt = session.AccessToken.ExpiresAt,
+                    RefreshToken = session.RefreshToken.Value,
                     RefreshTokenExpiresAt = session.RefreshToken.ExpiresAt,
                     IsActive = session.IsActive
                 },
@@ -137,6 +141,8 @@ public sealed class SessionRepository(IConfiguration configuration, ISender send
         return Session.Restore(
             id: session.SessionId,
             userId: session.UserId,
+            accessToken: session.AccessToken,
+            accessTokenExpiresAt: session.AccessTokenExpiresAt,
             refreshToken: session.RefreshToken,
             refreshTokenExpiresAt: session.RefreshTokenExpiresAt,
             deviceId: session.DeviceId,
