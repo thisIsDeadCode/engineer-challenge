@@ -14,6 +14,7 @@ public sealed class User
         Guid id,
         Email email,
         PasswordHash? passwordHash,
+        Session? session,
         LockoutPolicy lockoutPolicy,
         PasswordPolicy passwordPolicy,
         bool isActive,
@@ -41,6 +42,7 @@ public sealed class User
         Id = id;
         Email = email;
         PasswordHash = passwordHash;
+        Session = session;
         LockoutPolicy = lockoutPolicy ?? throw new ArgumentNullException(nameof(lockoutPolicy));
         PasswordPolicy = passwordPolicy ?? throw new ArgumentNullException(nameof(passwordPolicy));
         IsActive = isActive;
@@ -62,6 +64,7 @@ public sealed class User
             id,
             email,
             passwordHash: null,
+            session: null,
             lockoutPolicy,
             passwordPolicy,
             isActive: true,
@@ -78,6 +81,8 @@ public sealed class User
     public Email Email { get; }
 
     public PasswordHash? PasswordHash { get; private set; }
+
+    public Session? Session { get; private set; }
 
     public PasswordResetToken? PasswordResetToken { get; private set; }
 
@@ -110,6 +115,7 @@ public sealed class User
         int failedLoginAttempts,
         DateTimeOffset? lockedUntilUtc,
         bool isActive,
+        Session? session,
         DateTimeOffset createdAtUtc,
         DateTimeOffset updatedAtUtc)
     {
@@ -120,6 +126,7 @@ public sealed class User
             id,
             Email.Create(email),
             new PasswordHash(passwordHash),
+            session,
             lockoutPolicy,
             passwordPolicy,
             isActive,
