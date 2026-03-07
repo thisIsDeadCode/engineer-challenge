@@ -101,6 +101,7 @@ public sealed class User
         string? passwordResetTokenValue,
         bool? passwordResetTokenIsUsed,
         DateTimeOffset? passwordResetTokenExpiresAt,
+        DateTimeOffset? passwordResetTokenIssuedAt,
         int failedLoginAttempts,
         DateTimeOffset? lockedUntilUtc,
         bool isActive,
@@ -116,7 +117,7 @@ public sealed class User
             isActive,
             failedLoginAttempts,
             lockedUntilUtc,
-            passwordResetTokenValue is null ? null : PasswordResetToken.Create(passwordResetTokenValue, passwordResetTokenIsUsed, passwordResetTokenExpiresAt),
+            passwordResetTokenValue is null ? null : PasswordResetToken.Create(passwordResetTokenValue, passwordResetTokenIsUsed, passwordResetTokenExpiresAt, passwordResetTokenIssuedAt),
             createdAtUtc,
             updatedAtUtc);
     }
@@ -195,11 +196,11 @@ public sealed class User
         AddDomainEvent(new PasswordResetRequested(Id));
     }
 
-    public void MarkPasswordResetTokenAsUsed(string providedToken)
+    public void MarkPasswordResetTokenAsUsed(string providedToken, PasswordRecoveryPolicy passwordRecoveryPolicy)
     {
         ThrowIfInactive();
 
-        if (!CanConfirmPasswordReset(providedToken))
+        if (!CanConfirmPasswordReset(providedToken, passwordRecoveryPolicy))
         {
             throw new InvalidOperationException("Password reset token is invalid or expired.");
         }
@@ -207,7 +208,8 @@ public sealed class User
         PasswordResetToken = I_am_engineer.Identity.Domain.ValueObjects.PasswordResetToken.Create(
             PasswordResetToken!.Value,
             isUsed: true,
-            PasswordResetToken.ExpiresAt);
+            PasswordResetToken.ExpiresAt,
+            PasswordResetToken.IssuedAt);
 
         UpdatedAtUtc = DateTimeOffset.UtcNow;
         IsChanged = true;
@@ -228,9 +230,11 @@ public sealed class User
     }
 
 
-    public bool CanConfirmPasswordReset(string providedToken)
+    public bool CanConfirmPasswordReset(string providedToken, PasswordRecoveryPolicy passwordRecoveryPolicy)
     {
-        if (PasswordResetToken is null || !PasswordResetToken.IsActive)
+        ArgumentNullException.ThrowIfNull(passwordRecoveryPolicy);
+
+        if (PasswordResetToken is null || !passwordRecoveryPolicy.IsTokenActive(PasswordResetToken, DateTimeOffset.UtcNow))
         {
             return false;
         }
