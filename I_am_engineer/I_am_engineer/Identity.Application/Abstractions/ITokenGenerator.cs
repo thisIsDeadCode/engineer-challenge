@@ -6,5 +6,5 @@ public interface ITokenGenerator
 {
     AccessToken GenerateAccessToken(Guid userId);
 
-    RefreshToken GenerateRefreshToken();
+    RefreshToken GenerateRefreshToken(Guid userId);
 }

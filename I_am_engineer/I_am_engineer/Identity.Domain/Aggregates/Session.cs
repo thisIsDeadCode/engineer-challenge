@@ -93,7 +93,7 @@ public sealed class Session : IEventEntity
 
         var now = DateTimeOffset.UtcNow;
         var accessToken = tokenGenerator.GenerateAccessToken(userId);
-        var refreshToken = tokenGenerator.GenerateRefreshToken();
+        var refreshToken = tokenGenerator.GenerateRefreshToken(userId);
 
         var session = new Session(
             id: Guid.NewGuid(),
@@ -150,7 +150,7 @@ public sealed class Session : IEventEntity
         ArgumentNullException.ThrowIfNull(tokenGenerator);
 
         var nextAccessToken = tokenGenerator.GenerateAccessToken(UserId);
-        var nextRefreshToken = tokenGenerator.GenerateRefreshToken();
+        var nextRefreshToken = tokenGenerator.GenerateRefreshToken(UserId);
 
         AccessToken = nextAccessToken;
         RefreshToken = nextRefreshToken;
